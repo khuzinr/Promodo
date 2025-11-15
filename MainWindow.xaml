@@ -1,0 +1,93 @@
+<Window x:Class="PomodoroTimer.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ctrl="clr-namespace:PomodoroTimer.Controls"
+        Title="Pomodoro Timer"
+        Width="580"
+        Height="580"
+        Background="{StaticResource BackgroundBrush}"
+        Foreground="{StaticResource TextBrush}"
+        WindowStartupLocation="CenterScreen"
+        PreviewKeyDown="Window_PreviewKeyDown">
+    <Grid Background="{StaticResource BackgroundBrush}" Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- ВРЕМЯ + СТАТУС -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,12">
+            <TextBlock x:Name="TimeText"
+                       Text="00:00"
+                       FontSize="44"
+                       FontWeight="Bold"
+                       HorizontalAlignment="Center"
+                       Margin="0,4,0,0"/>
+            <TextBlock x:Name="StatusText"
+                       Text="Готов"
+                       HorizontalAlignment="Center"
+                       Margin="0,4,0,0"
+                       Foreground="{StaticResource SubtleTextBrush}"/>
+        </StackPanel>
+
+        <!-- КНОПКИ УПРАВЛЕНИЯ -->
+        <StackPanel Grid.Row="1"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Center"
+                    Margin="0,0,0,8">
+            <Button Content="Start" Width="90" Click="Start_Click"/>
+            <Button Content="Pause" Width="90" Click="Pause_Click"/>
+            <Button Content="Stop" Width="90" Click="Stop_Click"/>
+        </StackPanel>
+
+        <!-- АВТОПРОДОЛЖЕНИЕ -->
+        <CheckBox x:Name="AutoContinueCheck"
+                  Grid.Row="2"
+                  Content="Auto-continue next period"
+                  Margin="4,0,0,10"/>
+
+        <!-- ПРЕСЕТЫ + ГИСТОГРАММА -->
+        <Grid Grid.Row="3">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- Presets -->
+            <GroupBox Header="Presets" Grid.Row="0" Margin="0,0,0,10">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <ListBox x:Name="PresetList"
+                             Grid.Row="0"
+                             Margin="0,0,0,8"
+                             DisplayMemberPath="Name"
+                             SelectionChanged="PresetList_SelectionChanged"/>
+
+                    <StackPanel Grid.Row="1"
+                                Orientation="Horizontal"
+                                HorizontalAlignment="Center">
+                        <Button Content="Add" Width="70" Click="AddPreset_Click"/>
+                        <Button Content="Edit" Width="70" Click="EditPreset_Click"/>
+                        <Button Content="Delete" Width="70" Click="DeletePreset_Click"/>
+                    </StackPanel>
+                </Grid>
+            </GroupBox>
+
+            <!-- Chart -->
+            <GroupBox Header="Помидоро за сегодня (гистограмма)"
+                      Grid.Row="1">
+                <Grid>
+                    <ctrl:DailyChartControl x:Name="DailyChart"
+                                            MinHeight="140"
+                                            Margin="0"/>
+                </Grid>
+            </GroupBox>
+        </Grid>
+    </Grid>
+</Window>
