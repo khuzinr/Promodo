@@ -31,6 +31,7 @@ namespace PomodoroTimer
         private List<PomodoroStatsEntry> _todayEntries = new();
 
         private NotifyIcon _notifyIcon = null!;
+        private double _currentPeriodDurationMinutes;
         private bool _reallyQuit;
         private string _lastTrayMinutes = "00";
 
@@ -96,6 +97,9 @@ namespace PomodoroTimer
             ref int attrValue,
             int attrSize);
 
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern bool DestroyIcon(IntPtr hIcon);
+
         #region Timer logic
 
         private void Start_Click(object sender, RoutedEventArgs e)
@@ -135,6 +139,7 @@ namespace PomodoroTimer
             int minutes = _isWorking ? work : rest;
 
             _timeLeftSeconds = minutes * 60;
+            _currentPeriodDurationMinutes = minutes;
             _isRunning = true;
             _timer.Start();
 
@@ -157,12 +162,13 @@ namespace PomodoroTimer
             _timer.Stop();
             _isRunning = false;
             _timeLeftSeconds = 0;
+            _currentPeriodDurationMinutes = 0;
 
             TimeText.Text = "00:00";
             StatusText.Text = "Остановлено";
 
             _lastTrayMinutes = "00";
-            _notifyIcon.Icon = CreateTrayIcon("00", false);
+            UpdateTrayIcon("00", false);
             _notifyIcon.Text = "Pomodoro Timer";
         }
 
@@ -192,7 +198,7 @@ namespace PomodoroTimer
             if (minutesStr != _lastTrayMinutes)
             {
                 _lastTrayMinutes = minutesStr;
-                _notifyIcon.Icon = CreateTrayIcon(minutesStr, isRed);
+                UpdateTrayIcon(minutesStr, isRed);
             }
 
             _notifyIcon.Text = $"{timeStr} – {(_isWorking ? "Работа" : "Отдых")} ({_currentPreset.Name})";
@@ -202,14 +208,15 @@ namespace PomodoroTimer
         {
             _timer.Stop();
             _isRunning = false;
+            var wasWorkPeriod = _isWorking;
             _timeLeftSeconds = 0;
 
             TimeText.Text = "00:00";
 
-            if (_isWorking)
-            {
-                RegisterCompletedPomodoro();
+            RegisterCompletedPeriod(wasWorkPeriod);
 
+            if (wasWorkPeriod)
+            {
                 System.Media.SystemSounds.Asterisk.Play();
                 System.Media.SystemSounds.Asterisk.Play();
 
@@ -256,7 +263,7 @@ namespace PomodoroTimer
                 _isWorking = true;
             }
 
-            _notifyIcon.Icon = CreateTrayIcon("00", false);
+            UpdateTrayIcon("00", false);
 
             if (AutoContinueCheck.IsChecked == true)
             {
@@ -284,35 +291,43 @@ namespace PomodoroTimer
 
         #region Stats
 
-        private void RegisterCompletedPomodoro()
+        private void RegisterCompletedPeriod(bool wasWorkPeriod)
         {
             var now = DateTime.Now;
 
-            // длительность помидоро (можно считать только для работы,
-            // но на будущее берём текущий режим)
-            double duration = _isWorking
-                ? _currentPreset.WorkMinutes
-                : _currentPreset.RestMinutes;
+            double duration = _currentPeriodDurationMinutes > 0
+                ? _currentPeriodDurationMinutes
+                : (wasWorkPeriod
+                    ? _currentPreset.WorkMinutes
+                    : _currentPreset.RestMinutes);
 
-            // время окончания
+            if (duration <= 0)
+            {
+                duration = wasWorkPeriod
+                    ? Math.Max(1, _currentPreset.WorkMinutes)
+                    : Math.Max(1, _currentPreset.RestMinutes);
+            }
+
             double endMinutes = now.Hour * 60 + now.Minute + now.Second / 60.0;
-
-            // время начала = конец - длительность
             double startMinutes = endMinutes - duration;
-            if (startMinutes < 0) startMinutes = 0;
+            if (startMinutes < 0)
+            {
+                startMinutes = 0;
+            }
 
             var entry = new PomodoroStatsEntry
             {
                 // в поле TimeMinutes теперь кладём ВРЕМЯ НАЧАЛА
                 TimeMinutes = startMinutes,
                 DurationMinutes = duration,
-                Type = "work"
+                Type = wasWorkPeriod ? "work" : "rest"
             };
 
             _todayEntries.Add(entry);
             DailyChart.Entries = null!;
             DailyChart.Entries = _todayEntries;
             StatsService.SaveStats(_stats);
+            _currentPeriodDurationMinutes = 0;
         }
 
         #endregion
@@ -566,7 +581,20 @@ namespace PomodoroTimer
             }
 
             IntPtr hIcon = bmp.GetHicon();
-            return System.Drawing.Icon.FromHandle(hIcon);
+            var icon = (System.Drawing.Icon)System.Drawing.Icon.FromHandle(hIcon).Clone();
+            DestroyIcon(hIcon);
+            return icon;
+        }
+
+        private void UpdateTrayIcon(string minutesText, bool red)
+        {
+            if (_notifyIcon == null)
+                return;
+
+            var newIcon = CreateTrayIcon(minutesText, red);
+            var oldIcon = _notifyIcon.Icon;
+            _notifyIcon.Icon = newIcon;
+            oldIcon?.Dispose();
         }
 
         #endregion

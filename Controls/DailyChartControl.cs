@@ -81,54 +81,62 @@ public class DailyChartControl : FrameworkElement
         if (Entries == null || Entries.Count == 0)
             return;
 
-var maxDuration = Entries.Max(e => e.DurationMinutes);
-if (maxDuration <= 0) maxDuration = 1;
+        var filteredEntries = Entries
+            .Where(e => e != null && e.DurationMinutes > 0)
+            .ToList();
 
-// минимальная ширина столбика в пикселях, чтобы не исчезали совсем
-double minBarWidthPx = 6.0;
-var barBrush = new SolidColorBrush(Color.FromRgb(90, 200, 90));
+        if (filteredEntries.Count == 0)
+            return;
 
-foreach (var entry in Entries)
-{
-    // старт и конец интервала по времени суток
-    double start = entry.TimeMinutes;
-    double end = entry.TimeMinutes + entry.DurationMinutes;
+        var maxDuration = filteredEntries.Max(e => e.DurationMinutes);
+        if (maxDuration <= 0) maxDuration = 1;
 
-    if (start < 0) start = 0;
-    if (end > 24 * 60) end = 24 * 60;
+        double minBarWidthPx = 6.0;
+        var workBrush = new SolidColorBrush(Color.FromRgb(90, 200, 90));
+        var restBrush = new SolidColorBrush(Color.FromRgb(90, 150, 220));
 
-    double startNorm = start / (24 * 60.0);
-    double endNorm = end / (24 * 60.0);
-
-    double xLeft = ox + w * startNorm;
-    double xRight = ox + w * endNorm;
-    double width = xRight - xLeft;
-
-    if (width < minBarWidthPx)
-    {
-        // гарантируем минимальную видимую ширину
-        width = minBarWidthPx;
-        xRight = xLeft + width;
-        if (xRight > ox + w)
+        foreach (var entry in filteredEntries)
         {
-            xRight = ox + w;
-            xLeft = xRight - width;
+            double start = entry.TimeMinutes;
+            double end = entry.TimeMinutes + entry.DurationMinutes;
+
+            if (start < 0) start = 0;
+            if (end > 24 * 60) end = 24 * 60;
+
+            double startNorm = start / (24 * 60.0);
+            double endNorm = end / (24 * 60.0);
+
+            double xLeft = ox + w * startNorm;
+            double xRight = ox + w * endNorm;
+            double width = xRight - xLeft;
+
+            if (width < minBarWidthPx)
+            {
+                width = minBarWidthPx;
+                xRight = xLeft + width;
+                if (xRight > ox + w)
+                {
+                    xRight = ox + w;
+                    xLeft = xRight - width;
+                }
+            }
+
+            double hNorm = entry.DurationMinutes / maxDuration;
+            double barHeight = h * hNorm;
+            double yTop = oy - barHeight;
+
+            var barRect = new Rect(
+                xLeft,
+                yTop,
+                xRight - xLeft,
+                barHeight);
+
+            var brush = string.Equals(entry.Type, "rest", StringComparison.OrdinalIgnoreCase)
+                ? restBrush
+                : workBrush;
+
+            dc.DrawRoundedRectangle(brush, null, barRect, 2, 2);
         }
-    }
-
-    // высота ∝ длительности
-    double hNorm = entry.DurationMinutes / maxDuration;
-    double barHeight = h * hNorm;
-    double yTop = oy - barHeight;
-
-    var barRect = new Rect(
-        xLeft,
-        yTop,
-        xRight - xLeft,
-        barHeight);
-
-    dc.DrawRectangle(barBrush, null, barRect);
-}
 
     }
 }
