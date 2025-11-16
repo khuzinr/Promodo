@@ -499,7 +499,7 @@ namespace PomodoroTimer
                 // Используем более современный и чёткий шрифт
                 using var font = new System.Drawing.Font(
                     "Segoe UI",
-                    165f, // Увеличен размер для лучшей читаемости
+                    180f, // Увеличен размер для лучшей читаемости
                     System.Drawing.FontStyle.Bold,
                     System.Drawing.GraphicsUnit.Pixel);
 
@@ -518,7 +518,7 @@ namespace PomodoroTimer
 
                 // Центрируем с учётом дополнительных отступов и сдвигом вверх
                 // Добавляем 10% ширины для гарантии, что цифры не обрежутся
-                float x = (size - textSize.Width) / 2f - textSize.Width * 0.05f;
+                float x = (size - textSize.Width) / 2f - textSize.Width * 0.16f;
                 float y = (size - textSize.Height) / 2f - 8f; // Сдвиг вверх
 
                 // Создаём путь для текста
