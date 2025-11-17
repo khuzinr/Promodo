@@ -24,15 +24,21 @@ public class DailyChartControl : FrameworkElement
     {
         base.OnRender(dc);
 
+        var backgroundBrush = (Brush?)(Application.Current?.TryFindResource("CardBrush")) ??
+                              new SolidColorBrush(Color.FromRgb(0x1E, 0x1E, 0x1E));
+        var axisBrush = (Brush?)(Application.Current?.TryFindResource("SubtleTextBrush")) ?? Brushes.Gray;
+        var barBrush = (Brush?)(Application.Current?.TryFindResource("AccentBrush")) ??
+                       new SolidColorBrush(Color.FromRgb(90, 200, 90));
+
         var rect = new Rect(0, 0, ActualWidth, ActualHeight);
-        dc.DrawRectangle(new SolidColorBrush(Color.FromRgb(0x1E, 0x1E, 0x1E)), null, rect);
+        dc.DrawRectangle(backgroundBrush, null, rect);
 
         if (ActualWidth <= 0 || ActualHeight <= 0) return;
 
-        double marginLeft = 40;
-        double marginBottom = 25;
-        double marginTop = 10;
-        double marginRight = 10;
+        double marginLeft = 48;
+        double marginBottom = 40;
+        double marginTop = 16;
+        double marginRight = 16;
 
         double w = ActualWidth - marginLeft - marginRight;
         double h = ActualHeight - marginTop - marginBottom;
@@ -41,7 +47,7 @@ public class DailyChartControl : FrameworkElement
         double ox = marginLeft;
         double oy = ActualHeight - marginBottom;
 
-        var axisPen = new Pen(new SolidColorBrush(Color.FromRgb(0x88, 0x88, 0x88)), 1);
+        var axisPen = new Pen(axisBrush, 1);
         // оси
         dc.DrawLine(axisPen, new Point(ox, oy), new Point(ox + w, oy));
         dc.DrawLine(axisPen, new Point(ox, oy), new Point(ox, oy - h));
@@ -58,7 +64,7 @@ public class DailyChartControl : FrameworkElement
                 FlowDirection.LeftToRight,
                 new Typeface("Segoe UI"),
                 10,
-                Brushes.Gray,
+                axisBrush,
                 VisualTreeHelper.GetDpi(this).PixelsPerDip);
 
             dc.DrawText(text, new Point(x - text.Width / 2, oy + 5));
@@ -71,7 +77,7 @@ public class DailyChartControl : FrameworkElement
             FlowDirection.LeftToRight,
             new Typeface("Segoe UI"),
             10,
-            Brushes.Gray,
+            axisBrush,
             VisualTreeHelper.GetDpi(this).PixelsPerDip);
 
         dc.PushTransform(new RotateTransform(-90, 10, oy - h / 2));
@@ -86,8 +92,6 @@ if (maxDuration <= 0) maxDuration = 1;
 
 // минимальная ширина столбика в пикселях, чтобы не исчезали совсем
 double minBarWidthPx = 6.0;
-var barBrush = new SolidColorBrush(Color.FromRgb(90, 200, 90));
-
 foreach (var entry in Entries)
 {
     // старт и конец интервала по времени суток

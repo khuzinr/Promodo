@@ -42,11 +42,34 @@
             <Button Content="Stop" Width="90" Click="Stop_Click"/>
         </StackPanel>
 
-        <!-- АВТОПРОДОЛЖЕНИЕ -->
-        <CheckBox x:Name="AutoContinueCheck"
-                  Grid.Row="2"
-                  Content="Auto-continue next period"
-                  Margin="4,0,0,10"/>
+        <!-- АВТОПРОДОЛЖЕНИЕ + ДОП. КНОПКИ -->
+        <Grid Grid.Row="2" Margin="0,0,0,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <CheckBox x:Name="AutoContinueCheck"
+                      Grid.Column="0"
+                      Content="Auto-continue next period"
+                      Margin="4,0,0,0"
+                      VerticalAlignment="Center"/>
+
+            <Button Grid.Column="1"
+                    Content="Change"
+                    Width="90"
+                    Margin="12,0,0,0"
+                    ToolTip="Switch between work and rest modes"
+                    Click="ChangeButton_Click"/>
+
+            <Button Grid.Column="2"
+                    Content="Stats"
+                    Width="90"
+                    Margin="8,0,0,0"
+                    ToolTip="Open weekly statistics (Ctrl+Alt+S)"
+                    Click="StatsButton_Click"/>
+        </Grid>
 
         <!-- ПРЕСЕТЫ + ГИСТОГРАММА -->
         <Grid Grid.Row="3">
@@ -84,8 +107,8 @@
                       Grid.Row="1">
                 <Grid>
                     <ctrl:DailyChartControl x:Name="DailyChart"
-                                            MinHeight="140"
-                                            Margin="0"/>
+                                            MinHeight="160"
+                                            Margin="0,0,0,8"/>
                 </Grid>
             </GroupBox>
         </Grid>
