@@ -37,16 +37,65 @@
                     Orientation="Horizontal"
                     HorizontalAlignment="Center"
                     Margin="0,0,0,8">
-            <Button Content="Start" Width="90" Click="Start_Click"/>
-            <Button Content="Pause" Width="90" Click="Pause_Click"/>
-            <Button Content="Stop" Width="90" Click="Stop_Click"/>
+            <Button x:Name="ToggleStartPauseButton"
+                    Content="Start"
+                    Width="110"
+                    Margin="0,0,8,0"
+                    Click="ToggleStartPauseButton_Click">
+                <Button.ToolTip>
+                    <ToolTip Content="Старт/Пауза (Ctrl+Alt+S)"/>
+                </Button.ToolTip>
+            </Button>
+            <Button Content="Stop"
+                    Width="90"
+                    Margin="0,0,8,0"
+                    Click="Stop_Click">
+                <Button.ToolTip>
+                    <ToolTip Content="Стоп (Ctrl+Alt+A)"/>
+                </Button.ToolTip>
+            </Button>
+            <Button x:Name="SwitchModeButton"
+                    Content="Сменить режим"
+                    Width="140"
+                    Click="SwitchModeButton_Click">
+                <Button.ToolTip>
+                    <ToolTip Content="Сменить Работа/Отдых (Ctrl+Alt+Q)"/>
+                </Button.ToolTip>
+            </Button>
         </StackPanel>
 
-        <!-- АВТОПРОДОЛЖЕНИЕ -->
-        <CheckBox x:Name="AutoContinueCheck"
-                  Grid.Row="2"
-                  Content="Auto-continue next period"
-                  Margin="4,0,0,10"/>
+        <!-- АВТОПРОДОЛЖЕНИЕ + ИСТОРИЯ -->
+        <StackPanel Grid.Row="2" Margin="4,0,0,10">
+            <CheckBox x:Name="AutoContinueCheck"
+                      Content="Auto-continue next period"/>
+
+            <StackPanel Orientation="Horizontal"
+                        HorizontalAlignment="Center"
+                        Margin="0,8,0,0">
+                <Button x:Name="PreviousDayButton"
+                        Content="◀"
+                        Width="40"
+                        Margin="0,0,8,0"
+                        Click="PreviousDayButton_Click">
+                    <Button.ToolTip>
+                        <ToolTip Content="Предыдущий день (←)"/>
+                    </Button.ToolTip>
+                </Button>
+                <TextBlock x:Name="SelectedDateText"
+                           VerticalAlignment="Center"
+                           FontWeight="SemiBold"
+                           Text="Сегодня"
+                           Margin="0,0,8,0"/>
+                <Button x:Name="NextDayButton"
+                        Content="▶"
+                        Width="40"
+                        Click="NextDayButton_Click">
+                    <Button.ToolTip>
+                        <ToolTip Content="Следующий день (→)"/>
+                    </Button.ToolTip>
+                </Button>
+            </StackPanel>
+        </StackPanel>
 
         <!-- ПРЕСЕТЫ + ГИСТОГРАММА -->
         <Grid Grid.Row="3">
@@ -80,8 +129,21 @@
             </GroupBox>
 
             <!-- Chart -->
-            <GroupBox Header="Помидоро за сегодня (гистограмма)"
-                      Grid.Row="1">
+            <GroupBox Grid.Row="1">
+                <GroupBox.Header>
+                    <DockPanel LastChildFill="False">
+                        <TextBlock Text="Помидоро за выбранный день"
+                                   VerticalAlignment="Center"/>
+                        <Button Content="Статистика по месяцам"
+                                DockPanel.Dock="Right"
+                                Click="OpenMonthlyStats_Click"
+                                Margin="8,0,0,0">
+                            <Button.ToolTip>
+                                <ToolTip Content="Открыть статистику по неделям"/>
+                            </Button.ToolTip>
+                        </Button>
+                    </DockPanel>
+                </GroupBox.Header>
                 <Grid>
                     <ctrl:DailyChartControl x:Name="DailyChart"
                                             MinHeight="140"

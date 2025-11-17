@@ -18,11 +18,11 @@ public partial class App : Application
 
         if (!createdNew)
         {
-            if (e.Args.Length > 0)
-            {
-                var cmd = string.Join(' ', e.Args);
-                CommandClient.SendCommand(cmd);
-            }
+            string cmd = e.Args.Length > 0
+                ? string.Join(' ', e.Args)
+                : "show";
+
+            CommandClient.SendCommand(cmd);
             Shutdown();
             return;
         }

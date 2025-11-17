@@ -66,11 +66,11 @@ public class CommandServer : IDisposable
                     _window.PauseTimer();
                     break;
                 case "toggle":
-                    _window.ToggleRest();
+                    _window.ToggleWorkRestMode();
                     break;
                 case "rest":
                     if (_window.IsWorking)
-                        _window.ToggleRest();
+                        _window.ToggleWorkRestMode();
                     _window.StartTimer();
                     break;
                 case "show":

@@ -76,10 +76,12 @@
 
                         <Border Grid.Row="0"
                                 Background="{StaticResource BackgroundBrush}"
-                                Padding="4,0,4,2">
-                            <TextBlock Text="{TemplateBinding Header}"
-                                       FontWeight="SemiBold"
-                                       Foreground="{StaticResource SubtleTextBrush}" />
+                                Padding="4,0,4,2"
+                                TextElement.Foreground="{StaticResource SubtleTextBrush}"
+                                TextElement.FontWeight="SemiBold">
+                            <ContentPresenter Content="{TemplateBinding Header}"
+                                              ContentTemplate="{TemplateBinding HeaderTemplate}"
+                                              RecognizesAccessKey="True" />
                         </Border>
 
                         <Border Grid.Row="1"
