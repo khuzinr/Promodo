@@ -27,8 +27,12 @@ namespace PomodoroTimer
         private PomodoroPreset _currentPreset = new PomodoroPreset();
 
         private Dictionary<string, List<PomodoroStatsEntry>> _stats = new();
-        private readonly string _todayKey = DateTime.Today.ToString("yyyy-MM-dd");
+        private string _currentDayKey = DateTime.Today.ToString("yyyy-MM-dd");
         private List<PomodoroStatsEntry> _todayEntries = new();
+        private DateTime _viewedDate = DateTime.Today;
+        private string _viewedDateKey = string.Empty;
+
+        private readonly DispatcherTimer _dayCheckTimer;
 
         private NotifyIcon _notifyIcon = null!;
         private bool _reallyQuit;
@@ -53,16 +57,19 @@ namespace PomodoroTimer
 
             // Stats
             _stats = StatsService.LoadStats();
-            if (!_stats.TryGetValue(_todayKey, out _todayEntries!))
-            {
-                _todayEntries = new List<PomodoroStatsEntry>();
-                _stats[_todayKey] = _todayEntries;
-            }
-            DailyChart.Entries = _todayEntries;
+            _currentDayKey = FormatDateKey(DateTime.Today);
+            _todayEntries = GetOrCreateEntriesForKey(_currentDayKey);
+            _viewedDate = DateTime.Today;
+            _viewedDateKey = _currentDayKey;
+            UpdateDailyChart();
 
             // Timer
             _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
             _timer.Tick += Timer_Tick;
+
+            _dayCheckTimer = new DispatcherTimer { Interval = TimeSpan.FromMinutes(1) };
+            _dayCheckTimer.Tick += (_, _) => EnsureCurrentDay();
+            _dayCheckTimer.Start();
 
             // Tray
             SetupTrayIcon();
@@ -286,6 +293,8 @@ namespace PomodoroTimer
 
         private void RegisterCompletedPomodoro()
         {
+            EnsureCurrentDay();
+
             var now = DateTime.Now;
 
             // длительность помидоро (можно считать только для работы,
@@ -310,9 +319,88 @@ namespace PomodoroTimer
             };
 
             _todayEntries.Add(entry);
-            DailyChart.Entries = null!;
-            DailyChart.Entries = _todayEntries;
+
+            if (_viewedDateKey == _currentDayKey)
+            {
+                UpdateDailyChart();
+            }
+
             StatsService.SaveStats(_stats);
+        }
+
+        private static string FormatDateKey(DateTime date)
+            => date.ToString("yyyy-MM-dd");
+
+        private List<PomodoroStatsEntry> GetOrCreateEntriesForKey(string key)
+        {
+            if (!_stats.TryGetValue(key, out var entries) || entries == null)
+            {
+                entries = new List<PomodoroStatsEntry>();
+                _stats[key] = entries;
+            }
+
+            return entries;
+        }
+
+        private void UpdateDailyChart()
+        {
+            if (string.IsNullOrEmpty(_viewedDateKey))
+            {
+                _viewedDateKey = FormatDateKey(_viewedDate);
+            }
+
+            var entries = GetOrCreateEntriesForKey(_viewedDateKey);
+
+            DailyChart.Entries = null!;
+            DailyChart.Entries = entries;
+
+            HistoryDateText.Text = _viewedDate.ToString(
+                "dd MMMM yyyy",
+                System.Globalization.CultureInfo.CurrentUICulture);
+        }
+
+        private void EnsureCurrentDay()
+        {
+            var today = DateTime.Today;
+            var newKey = FormatDateKey(today);
+
+            if (_currentDayKey == newKey)
+                return;
+
+            var previousKey = _currentDayKey;
+            bool wasViewingCurrent = string.IsNullOrEmpty(_viewedDateKey) || _viewedDateKey == previousKey;
+
+            _currentDayKey = newKey;
+            _todayEntries = GetOrCreateEntriesForKey(newKey);
+
+            if (wasViewingCurrent)
+            {
+                _viewedDate = today;
+                _viewedDateKey = newKey;
+            }
+
+            UpdateDailyChart();
+        }
+
+        private void ChangeViewedDay(int offset)
+        {
+            if (offset == 0)
+                return;
+
+            var candidate = _viewedDate.AddDays(offset);
+            var today = DateTime.Today;
+
+            if (candidate > today)
+            {
+                candidate = today;
+            }
+
+            if (candidate == _viewedDate)
+                return;
+
+            _viewedDate = candidate;
+            _viewedDateKey = FormatDateKey(candidate);
+            UpdateDailyChart();
         }
 
         #endregion
@@ -575,6 +663,20 @@ namespace PomodoroTimer
 
         private void Window_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
         {
+            if (e.Key == Key.Left)
+            {
+                ChangeViewedDay(-1);
+                e.Handled = true;
+                return;
+            }
+
+            if (e.Key == Key.Right)
+            {
+                ChangeViewedDay(1);
+                e.Handled = true;
+                return;
+            }
+
             bool ctrl = Keyboard.IsKeyDown(Key.LeftCtrl) || Keyboard.IsKeyDown(Key.RightCtrl);
             bool alt = Keyboard.IsKeyDown(Key.LeftAlt) || Keyboard.IsKeyDown(Key.RightAlt);
 
