@@ -230,12 +230,12 @@ namespace PomodoroTimer
                 );
 
                 // Оставляем старое для совместимости
-                _notifyIcon.ShowBalloonTip(
-                    5000,
-                    "Pomodoro Timer",
-                    $"Рабочий таймер \"{_currentPreset.Name}\" завершён.",
-                    ToolTipIcon.Info
-                );
+                // _notifyIcon.ShowBalloonTip(
+                //     5000,
+                //     "Pomodoro Timer",
+                //     $"Рабочий таймер \"{_currentPreset.Name}\" завершён.",
+                //     ToolTipIcon.Info
+               //  );
 
                 _isWorking = false;
             }
@@ -253,12 +253,12 @@ namespace PomodoroTimer
                 );
 
                 // Оставляем старое для совместимости
-                _notifyIcon.ShowBalloonTip(
-                    5000,
-                    "Pomodoro Timer",
-                    $"Таймер отдыха \"{_currentPreset.Name}\" завершён.",
-                    ToolTipIcon.Info
-                );
+                // _notifyIcon.ShowBalloonTip(
+                //     5000,
+                //     "Pomodoro Timer",
+                //     $"Таймер отдыха \"{_currentPreset.Name}\" завершён.",
+                //     ToolTipIcon.Info
+                // );
 
                 _isWorking = true;
             }
