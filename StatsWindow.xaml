@@ -6,14 +6,15 @@
         Width="960"
         Height="560"
         WindowStartupLocation="CenterOwner">
-    <Grid Margin="12" ColumnSpacing="12">
+    <Grid Margin="12">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="3*"/>
             <ColumnDefinition Width="2*"/>
         </Grid.ColumnDefinitions>
 
         <GroupBox Header="Гистограмма выбранных дней"
-                  Grid.Column="0">
+                  Grid.Column="0"
+                  Margin="0,0,12,0">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
