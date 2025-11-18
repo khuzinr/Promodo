@@ -2,9 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Media;
 using PomodoroTimer.Models;
 
@@ -28,6 +30,7 @@ public partial class StatsWindow : Window
     public StatsWindow(Dictionary<string, List<PomodoroStatsEntry>> stats)
     {
         InitializeComponent();
+        SourceInitialized += (_, _) => TryApplyDarkTitleBar();
 
         _cellBackground = ResolveBrush("CardBrush", Color.FromRgb(0x22, 0x22, 0x22));
         _cellBorder = ResolveBrush("BorderBrushColor", Color.FromRgb(0x33, 0x33, 0x33));
@@ -161,6 +164,13 @@ public partial class StatsWindow : Window
         if (cell == null)
             return;
 
+        if ((Keyboard.Modifiers & ModifierKeys.Shift) == ModifierKeys.Shift)
+        {
+            ToggleDateSelection(cell.Date.Date);
+            e.Handled = true;
+            return;
+        }
+
         _isDragging = true;
         _dragStart = cell;
         _dragMode = null;
@@ -250,6 +260,22 @@ public partial class StatsWindow : Window
         foreach (var date in dates)
         {
             _selectedDates.Add(date.Date);
+        }
+
+        UpdateAllCellVisuals();
+        UpdateChart();
+    }
+
+    private void ToggleDateSelection(DateTime date)
+    {
+        var normalized = date.Date;
+        if (_selectedDates.Contains(normalized))
+        {
+            _selectedDates.Remove(normalized);
+        }
+        else
+        {
+            _selectedDates.Add(normalized);
         }
 
         UpdateAllCellVisuals();
@@ -359,6 +385,29 @@ public partial class StatsWindow : Window
         RenderMonth();
         SelectInitialWeek();
     }
+
+    private void TryApplyDarkTitleBar()
+    {
+        if (!OperatingSystem.IsWindowsVersionAtLeast(10, 0, 17763))
+            return;
+
+        var helper = new WindowInteropHelper(this);
+        var hwnd = helper.Handle;
+        if (hwnd == IntPtr.Zero)
+            return;
+
+        const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
+        const int DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1 = 19;
+
+        int trueValue = 1;
+        if (DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, ref trueValue, sizeof(int)) != 0)
+        {
+            DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1, ref trueValue, sizeof(int));
+        }
+    }
+
+    [DllImport("dwmapi.dll")]
+    private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
 
     private class DayCell
     {
