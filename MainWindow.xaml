@@ -85,13 +85,20 @@
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
+                    <Grid Grid.Row="0">
+                        <Button Content="Окно статистики"
+                                HorizontalAlignment="Right"
+                                Click="OpenStatsWindow_Click"/>
+                    </Grid>
+
                     <StackPanel Orientation="Horizontal"
-                                Grid.Row="0"
+                                Grid.Row="1"
                                 HorizontalAlignment="Center"
-                                Margin="0,0,0,6">
+                                Margin="0,4,0,6">
                         <TextBlock Text="День:"
                                    Margin="0,0,6,0"/>
                         <TextBlock x:Name="HistoryDateText"
@@ -103,7 +110,7 @@
                     </StackPanel>
 
                     <ctrl:DailyChartControl x:Name="DailyChart"
-                                            Grid.Row="1"
+                                            Grid.Row="2"
                                             MinHeight="140"
                                             Margin="0"/>
                 </Grid>
