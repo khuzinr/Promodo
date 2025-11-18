@@ -37,6 +37,7 @@ namespace PomodoroTimer
         private NotifyIcon _notifyIcon = null!;
         private bool _reallyQuit;
         private string _lastTrayMinutes = "00";
+        private StatsWindow? _statsWindow;
 
         public bool IsWorking => _isWorking;
 
@@ -326,6 +327,7 @@ namespace PomodoroTimer
             }
 
             StatsService.SaveStats(_stats);
+            _statsWindow?.RefreshData();
         }
 
         private static string FormatDateKey(DateTime date)
@@ -401,6 +403,28 @@ namespace PomodoroTimer
             _viewedDate = candidate;
             _viewedDateKey = FormatDateKey(candidate);
             UpdateDailyChart();
+        }
+
+        private void OpenStatsWindow_Click(object sender, RoutedEventArgs e)
+        {
+            if (_statsWindow == null)
+            {
+                _statsWindow = new StatsWindow(_stats)
+                {
+                    Owner = this
+                };
+                _statsWindow.Closed += (_, _) => _statsWindow = null;
+                _statsWindow.Show();
+            }
+            else
+            {
+                if (_statsWindow.WindowState == WindowState.Minimized)
+                {
+                    _statsWindow.WindowState = WindowState.Normal;
+                }
+
+                _statsWindow.Activate();
+            }
         }
 
         #endregion
@@ -686,6 +710,11 @@ namespace PomodoroTimer
             if (e.Key == Key.D)
             {
                 StartTimer();
+                e.Handled = true;
+            }
+            else if (e.Key == Key.P)
+            {
+                PauseTimer();
                 e.Handled = true;
             }
             else if (e.Key == Key.S)

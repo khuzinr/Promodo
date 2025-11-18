@@ -5,6 +5,7 @@
         Title="Pomodoro Timer"
         Width="580"
         Height="580"
+        MinHeight="650"
         Background="{StaticResource BackgroundBrush}"
         Foreground="{StaticResource TextBrush}"
         WindowStartupLocation="CenterScreen"
@@ -37,9 +38,30 @@
                     Orientation="Horizontal"
                     HorizontalAlignment="Center"
                     Margin="0,0,0,8">
-            <Button Content="Start" Width="90" Click="Start_Click"/>
-            <Button Content="Pause" Width="90" Click="Pause_Click"/>
-            <Button Content="Stop" Width="90" Click="Stop_Click"/>
+            <Button Content="Start"
+                    Width="90"
+                    Click="Start_Click"
+                    ToolTipService.InitialShowDelay="2000">
+                <Button.ToolTip>
+                    <ToolTip Content="Горячая клавиша: Ctrl+Alt+D"/>
+                </Button.ToolTip>
+            </Button>
+            <Button Content="Pause"
+                    Width="90"
+                    Click="Pause_Click"
+                    ToolTipService.InitialShowDelay="2000">
+                <Button.ToolTip>
+                    <ToolTip Content="Горячая клавиша: Ctrl+Alt+P"/>
+                </Button.ToolTip>
+            </Button>
+            <Button Content="Stop"
+                    Width="90"
+                    Click="Stop_Click"
+                    ToolTipService.InitialShowDelay="2000">
+                <Button.ToolTip>
+                    <ToolTip Content="Горячая клавиша: Ctrl+Alt+S"/>
+                </Button.ToolTip>
+            </Button>
         </StackPanel>
 
         <!-- АВТОПРОДОЛЖЕНИЕ -->
@@ -85,13 +107,20 @@
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
+                    <Grid Grid.Row="0">
+                        <Button Content="Окно статистики"
+                                HorizontalAlignment="Right"
+                                Click="OpenStatsWindow_Click"/>
+                    </Grid>
+
                     <StackPanel Orientation="Horizontal"
-                                Grid.Row="0"
+                                Grid.Row="1"
                                 HorizontalAlignment="Center"
-                                Margin="0,0,0,6">
+                                Margin="0,4,0,6">
                         <TextBlock Text="День:"
                                    Margin="0,0,6,0"/>
                         <TextBlock x:Name="HistoryDateText"
@@ -103,7 +132,7 @@
                     </StackPanel>
 
                     <ctrl:DailyChartControl x:Name="DailyChart"
-                                            Grid.Row="1"
+                                            Grid.Row="2"
                                             MinHeight="140"
                                             Margin="0"/>
                 </Grid>
