@@ -20,14 +20,19 @@ public partial class StatsWindow : Window
     private DayCell? _dragStart;
     private string? _dragMode; // "row" or "column"
 
-    private readonly Brush _cellBackground = new SolidColorBrush(Color.FromRgb(0x22, 0x22, 0x22));
-    private readonly Brush _cellBackgroundSelected = new SolidColorBrush(Color.FromArgb(160, 0x4C, 0xAF, 0x50));
-    private readonly Brush _cellBorder = new SolidColorBrush(Color.FromRgb(0x33, 0x33, 0x33));
-    private readonly Brush _cellTodayBorder = new SolidColorBrush(Color.FromRgb(0x4C, 0xAF, 0x50));
+    private readonly Brush _cellBackground;
+    private readonly Brush _cellBackgroundSelected;
+    private readonly Brush _cellBorder;
+    private readonly Brush _cellTodayBorder;
 
     public StatsWindow(Dictionary<string, List<PomodoroStatsEntry>> stats)
     {
         InitializeComponent();
+
+        _cellBackground = ResolveBrush("CardBrush", Color.FromRgb(0x22, 0x22, 0x22));
+        _cellBorder = ResolveBrush("BorderBrushColor", Color.FromRgb(0x33, 0x33, 0x33));
+        _cellTodayBorder = ResolveBrush("AccentBrush", Color.FromRgb(0x4C, 0xAF, 0x50));
+        _cellBackgroundSelected = CreateSelectionBrush();
 
         _stats = stats;
         _visibleMonth = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
@@ -37,6 +42,7 @@ public partial class StatsWindow : Window
         UpdateChart();
 
         MouseLeftButtonUp += StatsWindow_MouseLeftButtonUp;
+        MouseMove += StatsWindow_MouseMove;
     }
 
     public void RefreshData()
@@ -92,7 +98,6 @@ public partial class StatsWindow : Window
             };
 
             border.MouseLeftButtonDown += DayCell_MouseLeftButtonDown;
-            border.MouseEnter += DayCell_MouseEnter;
 
             _dayCells.Add(cell);
         }
@@ -152,49 +157,69 @@ public partial class StatsWindow : Window
         e.Handled = true;
     }
 
-    private void DayCell_MouseEnter(object sender, System.Windows.Input.MouseEventArgs e)
+    private void StatsWindow_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
     {
         if (!_isDragging || _dragStart == null)
             return;
 
-        if (sender is not Border border)
+        var cell = FindCellUnderPointer();
+        if (cell == null || cell == _dragStart)
             return;
 
-        var cell = _dayCells.FirstOrDefault(c => c.Border == border);
-        if (cell == null)
-            return;
+        ApplyDragSelection(cell);
+    }
 
-        if (cell == _dragStart)
-            return;
+    private void ApplyDragSelection(DayCell cell)
+    {
+        _dragMode ??= DetermineDragMode(cell);
 
-        if (_dragMode == null)
+        if (_dragMode == "row")
         {
-            if (cell.Row == _dragStart.Row)
-                _dragMode = "row";
-            else if (cell.Column == _dragStart.Column)
-                _dragMode = "column";
-            else
-                return;
-        }
-
-        if (_dragMode == "row" && cell.Row == _dragStart.Row)
-        {
-            int startCol = Math.Min(_dragStart.Column, cell.Column);
+            int startCol = Math.Min(_dragStart!.Column, cell.Column);
             int endCol = Math.Max(_dragStart.Column, cell.Column);
             var dates = _dayCells
                 .Where(c => c.Row == _dragStart.Row && c.Column >= startCol && c.Column <= endCol)
                 .Select(c => c.Date.Date);
             SetSelection(dates);
         }
-        else if (_dragMode == "column" && cell.Column == _dragStart.Column)
+        else if (_dragMode == "column")
         {
-            int startRow = Math.Min(_dragStart.Row, cell.Row);
+            int startRow = Math.Min(_dragStart!.Row, cell.Row);
             int endRow = Math.Max(_dragStart.Row, cell.Row);
             var dates = _dayCells
                 .Where(c => c.Column == _dragStart.Column && c.Row >= startRow && c.Row <= endRow)
                 .Select(c => c.Date.Date);
             SetSelection(dates);
         }
+    }
+
+    private string DetermineDragMode(DayCell cell)
+    {
+        if (_dragStart == null)
+            return "row";
+
+        if (cell.Row == _dragStart.Row)
+            return "row";
+        if (cell.Column == _dragStart.Column)
+            return "column";
+
+        int rowDelta = Math.Abs(cell.Row - _dragStart.Row);
+        int columnDelta = Math.Abs(cell.Column - _dragStart.Column);
+        return columnDelta >= rowDelta ? "row" : "column";
+    }
+
+    private DayCell? FindCellUnderPointer()
+    {
+        DependencyObject? element = Mouse.DirectlyOver as DependencyObject;
+        while (element != null)
+        {
+            if (element is Border border)
+                return _dayCells.FirstOrDefault(c => c.Border == border);
+
+            element = VisualTreeHelper.GetParent(element);
+        }
+
+        return null;
     }
 
     private void SetSelection(IEnumerable<DateTime> dates)
@@ -274,6 +299,29 @@ public partial class StatsWindow : Window
     {
         int index = (int)day - 1;
         return index < 0 ? 6 : index;
+    }
+
+    private Brush ResolveBrush(string key, Color fallback)
+    {
+        if (TryFindResource(key) is Brush brush)
+            return brush;
+        if (Application.Current?.TryFindResource(key) is Brush appBrush)
+            return appBrush;
+        return new SolidColorBrush(fallback);
+    }
+
+    private Brush CreateSelectionBrush()
+    {
+        var accent = ResolveBrush("AccentBrush", Color.FromRgb(0x4C, 0xAF, 0x50));
+        if (accent is SolidColorBrush solid)
+        {
+            var color = solid.Color;
+            return new SolidColorBrush(Color.FromArgb(180, color.R, color.G, color.B));
+        }
+
+        var clone = accent.CloneCurrentValue();
+        clone.Opacity = 0.7;
+        return clone;
     }
 
     private void PrevMonth_Click(object sender, RoutedEventArgs e)

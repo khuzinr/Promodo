@@ -25,7 +25,7 @@ public class MultiDayChartControl : FrameworkElement
         base.OnRender(dc);
 
         var rect = new Rect(0, 0, ActualWidth, ActualHeight);
-        var background = new SolidColorBrush(Color.FromRgb(0x1A, 0x1A, 0x1A));
+        var background = ResolveBrush("CardBrush", new SolidColorBrush(Color.FromRgb(0x1A, 0x1A, 0x1A)));
         dc.DrawRectangle(background, null, rect);
 
         if (ActualWidth <= 0 || ActualHeight <= 0)
@@ -44,7 +44,7 @@ public class MultiDayChartControl : FrameworkElement
         double ox = marginLeft;
         double oy = ActualHeight - marginBottom;
 
-        var axisPen = new Pen(new SolidColorBrush(Color.FromRgb(0x66, 0x66, 0x66)), 1);
+        var axisPen = new Pen(ResolveBrush("BorderBrushColor", new SolidColorBrush(Color.FromRgb(0x66, 0x66, 0x66))), 1);
         dc.DrawLine(axisPen, new Point(ox, oy), new Point(ox + w, oy));
         dc.DrawLine(axisPen, new Point(ox, oy), new Point(ox, oy - h));
 
@@ -67,9 +67,9 @@ public class MultiDayChartControl : FrameworkElement
         double barWidth = Math.Max(Math.Min(slotWidth * 0.6, slotWidth - 6), 18);
         double barSpacing = (slotWidth - barWidth) / 2;
 
-        var accent = new SolidColorBrush(Color.FromRgb(0x4C, 0xAF, 0x50));
-        var textBrush = Brushes.White;
-        var subtleBrush = new SolidColorBrush(Color.FromRgb(0xAA, 0xAA, 0xAA));
+        var accent = ResolveBrush("AccentBrush", new SolidColorBrush(Color.FromRgb(0x4C, 0xAF, 0x50)));
+        var textBrush = ResolveBrush("TextBrush", Brushes.White);
+        var subtleBrush = ResolveBrush("SubtleTextBrush", new SolidColorBrush(Color.FromRgb(0xAA, 0xAA, 0xAA)));
         double dpi = VisualTreeHelper.GetDpi(this).PixelsPerDip;
         var fontFamily = new FontFamily("Segoe UI");
 
@@ -119,7 +119,16 @@ public class MultiDayChartControl : FrameworkElement
         double dpi = VisualTreeHelper.GetDpi(this).PixelsPerDip;
         var fontFamily = new FontFamily("Segoe UI");
         var formatted = new FormattedText(text, CultureInfo.CurrentUICulture, FlowDirection.LeftToRight,
-            new Typeface(fontFamily, FontStyles.Normal, FontWeights.SemiBold, FontStretches.Normal), 14, Brushes.Gray, dpi);
+            new Typeface(fontFamily, FontStyles.Normal, FontWeights.SemiBold, FontStretches.Normal), 14,
+            ResolveBrush("SubtleTextBrush", Brushes.Gray), dpi);
         dc.DrawText(formatted, new Point(center.X - formatted.Width / 2, center.Y - formatted.Height / 2));
+    }
+
+    private static Brush ResolveBrush(string key, Brush fallback)
+    {
+        if (Application.Current?.TryFindResource(key) is Brush brush)
+            return brush;
+
+        return fallback;
     }
 }
