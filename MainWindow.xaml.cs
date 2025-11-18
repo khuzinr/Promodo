@@ -712,6 +712,11 @@ namespace PomodoroTimer
                 StartTimer();
                 e.Handled = true;
             }
+            else if (e.Key == Key.P)
+            {
+                PauseTimer();
+                e.Handled = true;
+            }
             else if (e.Key == Key.S)
             {
                 StopTimer();
