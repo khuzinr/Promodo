@@ -683,7 +683,7 @@ namespace PomodoroTimer
             if (!ctrl || !alt)
                 return;
 
-            if (e.Key == Key.P)
+            if (e.Key == Key.D)
             {
                 StartTimer();
                 e.Handled = true;
@@ -693,7 +693,7 @@ namespace PomodoroTimer
                 StopTimer();
                 e.Handled = true;
             }
-            else if (e.Key == Key.R)
+            else if (e.Key == Key.A)
             {
                 ToggleRest();
                 e.Handled = true;
