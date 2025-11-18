@@ -71,6 +71,7 @@ public class MultiDayChartControl : FrameworkElement
         var textBrush = Brushes.White;
         var subtleBrush = new SolidColorBrush(Color.FromRgb(0xAA, 0xAA, 0xAA));
         double dpi = VisualTreeHelper.GetDpi(this).PixelsPerDip;
+        var fontFamily = new FontFamily("Segoe UI");
 
         for (int i = 0; i < count; i++)
         {
@@ -86,18 +87,18 @@ public class MultiDayChartControl : FrameworkElement
             // value text
             var valueText = FormatDuration(summary.TotalMinutes);
             var valueFormatted = new FormattedText(valueText, CultureInfo.CurrentUICulture, FlowDirection.LeftToRight,
-                new Typeface("Segoe UI", FontStyles.Normal, FontWeights.SemiBold, FontStretches.Normal), 12, textBrush, dpi);
+                new Typeface(fontFamily, FontStyles.Normal, FontWeights.SemiBold, FontStretches.Normal), 12, textBrush, dpi);
             dc.DrawText(valueFormatted, new Point(x + (barWidth - valueFormatted.Width) / 2, Math.Max(yTop - valueFormatted.Height - 4, marginTop)));
 
             // date label
             var label = summary.Date.ToString("dd MMM", CultureInfo.CurrentUICulture);
             var labelFormatted = new FormattedText(label, CultureInfo.CurrentUICulture, FlowDirection.LeftToRight,
-                new Typeface("Segoe UI"), 11, subtleBrush, dpi);
+                new Typeface(fontFamily, FontStyles.Normal, FontWeights.Normal, FontStretches.Normal), 11, subtleBrush, dpi);
             dc.DrawText(labelFormatted, new Point(x + (barWidth - labelFormatted.Width) / 2, oy + 6));
         }
 
         var yLabel = new FormattedText("Минуты", CultureInfo.CurrentUICulture, FlowDirection.LeftToRight,
-            new Typeface("Segoe UI"), 10, subtleBrush, dpi);
+            new Typeface(fontFamily, FontStyles.Normal, FontWeights.Normal, FontStretches.Normal), 10, subtleBrush, dpi);
         dc.PushTransform(new RotateTransform(-90, 12, oy - h / 2));
         dc.DrawText(yLabel, new Point(12 - yLabel.Width / 2, oy - h / 2 - yLabel.Height / 2));
         dc.Pop();
@@ -116,8 +117,9 @@ public class MultiDayChartControl : FrameworkElement
     private void DrawCenteredText(DrawingContext dc, string text, Point center)
     {
         double dpi = VisualTreeHelper.GetDpi(this).PixelsPerDip;
+        var fontFamily = new FontFamily("Segoe UI");
         var formatted = new FormattedText(text, CultureInfo.CurrentUICulture, FlowDirection.LeftToRight,
-            new Typeface("Segoe UI", FontStyles.Normal, FontWeights.SemiBold, FontStretches.Normal), 14, Brushes.Gray, dpi);
+            new Typeface(fontFamily, FontStyles.Normal, FontWeights.SemiBold, FontStretches.Normal), 14, Brushes.Gray, dpi);
         dc.DrawText(formatted, new Point(center.X - formatted.Width / 2, center.Y - formatted.Height / 2));
     }
 }
