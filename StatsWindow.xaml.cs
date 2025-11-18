@@ -98,9 +98,22 @@ public partial class StatsWindow : Window
             };
 
             border.MouseLeftButtonDown += DayCell_MouseLeftButtonDown;
+            border.MouseEnter += DayCell_MouseEnter;
 
             _dayCells.Add(cell);
         }
+    }
+
+    private void DayCell_MouseEnter(object sender, MouseEventArgs e)
+    {
+        if (!_isDragging || _dragStart == null || sender is not Border border)
+            return;
+
+        var cell = _dayCells.FirstOrDefault(c => c.Border == border);
+        if (cell == null || cell == _dragStart)
+            return;
+
+        ApplyDragSelection(cell);
     }
 
     private void RenderMonth()
@@ -210,7 +223,11 @@ public partial class StatsWindow : Window
 
     private DayCell? FindCellUnderPointer()
     {
-        DependencyObject? element = Mouse.DirectlyOver as DependencyObject;
+        var point = Mouse.GetPosition(CalendarUniformGrid);
+        if (!IsPointInsideCalendar(point))
+            return null;
+
+        DependencyObject? element = CalendarUniformGrid.InputHitTest(point) as DependencyObject;
         while (element != null)
         {
             if (element is Border border)
@@ -220,6 +237,11 @@ public partial class StatsWindow : Window
         }
 
         return null;
+    }
+
+    private bool IsPointInsideCalendar(Point point)
+    {
+        return point.X >= 0 && point.Y >= 0 && point.X <= CalendarUniformGrid.ActualWidth && point.Y <= CalendarUniformGrid.ActualHeight;
     }
 
     private void SetSelection(IEnumerable<DateTime> dates)

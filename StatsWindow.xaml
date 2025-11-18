@@ -5,7 +5,11 @@
         Title="Статистика по неделям"
         Width="960"
         Height="560"
-        WindowStartupLocation="CenterOwner">
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource BackgroundBrush}"
+        Foreground="{DynamicResource TextBrush}"
+        FontFamily="Segoe UI"
+        FontSize="13">
     <Grid Margin="12">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="3*"/>
