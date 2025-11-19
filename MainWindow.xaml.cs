@@ -297,8 +297,8 @@ namespace PomodoroTimer
                 return;
 
             var tooltipText = _isRunning
-                ? "Пауза таймера (Ctrl+Alt+S)\nЗапуск: Ctrl+Alt+D"
-                : "Запуск таймера (Ctrl+Alt+D)\nПауза: Ctrl+Alt+S";
+                ? "Пауза таймера: Ctrl+Alt+D\nСтоп и сброс: Ctrl+Alt+S"
+                : "Запуск таймера: Ctrl+Alt+D\nСтоп и сброс: Ctrl+Alt+S";
 
             StartPauseButton.ToolTip = tooltipText;
             AutomationProperties.SetName(StartPauseButton, _isRunning ? "Пауза таймера" : "Запуск таймера");
@@ -749,21 +749,22 @@ namespace PomodoroTimer
 
             bool ctrl = Keyboard.IsKeyDown(Key.LeftCtrl) || Keyboard.IsKeyDown(Key.RightCtrl);
             bool alt = Keyboard.IsKeyDown(Key.LeftAlt) || Keyboard.IsKeyDown(Key.RightAlt);
+            var actualKey = e.Key == Key.System ? e.SystemKey : e.Key;
 
             if (!ctrl || !alt)
                 return;
 
-            if (e.Key == Key.D)
+            if (actualKey == Key.D)
             {
                 ToggleStartPause();
                 e.Handled = true;
             }
-            else if (e.Key == Key.S)
+            else if (actualKey == Key.S)
             {
                 StopTimer();
                 e.Handled = true;
             }
-            else if (e.Key == Key.A)
+            else if (actualKey == Key.A)
             {
                 ToggleRest();
                 e.Handled = true;
