@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Controls;
@@ -22,10 +23,11 @@ namespace PomodoroTimer
         private readonly DispatcherTimer _timer;
         private int _timeLeftSeconds;
         private bool _isRunning;
-        private bool _isWorking = true; // true = Work, false = Rest
+        private bool _isWorking = true;
+        private DateTime? _periodStartTime; // Добавлено для точного учета времени
 
         private List<PomodoroPreset> _presets = new();
-        private PomodoroPreset _currentPreset = new PomodoroPreset();
+        private PomodoroPreset _currentPreset = new();
 
         private Dictionary<string, List<PomodoroStatsEntry>> _stats = new();
         private string _currentDayKey = DateTime.Today.ToString("yyyy-MM-dd");
@@ -38,9 +40,23 @@ namespace PomodoroTimer
         private NotifyIcon _notifyIcon = null!;
         private bool _reallyQuit;
         private string _lastTrayMinutes = "00";
+        private Icon? _currentTrayIcon; // Для освобождения ресурсов
         private StatsWindow? _statsWindow;
 
         public bool IsWorking => _isWorking;
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern bool DestroyIcon(IntPtr hIcon);
+
+        private const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
+        private const int DWMWA_USE_IMMERSIVE_DARK_MODE_OLD = 19;
+
+        [DllImport("dwmapi.dll")]
+        private static extern int DwmSetWindowAttribute(
+            IntPtr hwnd,
+            int attr,
+            ref int attrValue,
+            int attrSize);
 
         public MainWindow()
         {
@@ -89,22 +105,9 @@ namespace PomodoroTimer
             var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
             int useDark = 1;
 
-            // Windows 10 1809–20H2
             DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE_OLD, ref useDark, sizeof(int));
-
-            // Windows 11 и новые Windows 10
             DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, ref useDark, sizeof(int));
         }
-
-        private const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
-        private const int DWMWA_USE_IMMERSIVE_DARK_MODE_OLD = 19;
-
-        [System.Runtime.InteropServices.DllImport("dwmapi.dll")]
-        private static extern int DwmSetWindowAttribute(
-            IntPtr hwnd,
-            int attr,
-            ref int attrValue,
-            int attrSize);
 
         #region Timer logic
 
@@ -132,16 +135,24 @@ namespace PomodoroTimer
 
         public void StartTimer()
         {
-            // Если уже идёт – ничего не делаем
             if (_isRunning)
                 return;
 
-            // Если таймер был на паузе (есть оставшееся время) – просто продолжаем
+            // Если таймер был на паузе (есть оставшееся время) - просто продолжаем
             if (_timeLeftSeconds > 0)
             {
                 _isRunning = true;
                 _timer.Start();
-                StatusText.Text = _isWorking ? "Работа" : "Отдых";
+                
+                // Восстанавливаем время начала периода с учетом уже прошедшего времени
+                if (_periodStartTime == null)
+                {
+                    int totalMinutes = _isWorking ? _currentPreset.WorkMinutes : _currentPreset.RestMinutes;
+                    int elapsedSeconds = (totalMinutes * 60) - _timeLeftSeconds;
+                    _periodStartTime = DateTime.Now.AddSeconds(-elapsedSeconds);
+                }
+                
+                UpdateStatusText();
                 UpdateTimeDisplay();
                 UpdateStartPauseButton();
                 return;
@@ -153,10 +164,11 @@ namespace PomodoroTimer
             int minutes = _isWorking ? work : rest;
 
             _timeLeftSeconds = minutes * 60;
+            _periodStartTime = DateTime.Now; // Запоминаем точное время старта
             _isRunning = true;
             _timer.Start();
 
-            StatusText.Text = _isWorking ? "Работа" : "Отдых";
+            UpdateStatusText();
             UpdateTimeDisplay();
             UpdateStartPauseButton();
         }
@@ -177,12 +189,12 @@ namespace PomodoroTimer
             _timer.Stop();
             _isRunning = false;
             _timeLeftSeconds = 0;
+            _periodStartTime = null;
 
             TimeText.Text = "00:00";
             StatusText.Text = "Остановлено";
 
-            _lastTrayMinutes = "00";
-            _notifyIcon.Icon = CreateTrayIcon("00", false);
+            UpdateTrayIcon("00", false);
             _notifyIcon.Text = "Pomodoro Timer";
             UpdateStartPauseButton();
         }
@@ -210,13 +222,13 @@ namespace PomodoroTimer
             string minutesStr = $"{minutes:00}";
             bool isRed = _isWorking && _timeLeftSeconds > 0 && _timeLeftSeconds <= 5 * 60;
 
-            if (minutesStr != _lastTrayMinutes)
-            {
-                _lastTrayMinutes = minutesStr;
-                _notifyIcon.Icon = CreateTrayIcon(minutesStr, isRed);
-            }
+            UpdateTrayIcon(minutesStr, isRed);
+            _notifyIcon.Text = $"{timeStr} — {(_isWorking ? "Работа" : "Отдых")} ({_currentPreset.Name})";
+        }
 
-            _notifyIcon.Text = $"{timeStr} – {(_isWorking ? "Работа" : "Отдых")} ({_currentPreset.Name})";
+        private void UpdateStatusText()
+        {
+            StatusText.Text = _isWorking ? "Работа" : "Отдых";
         }
 
         private void PeriodFinished()
@@ -236,20 +248,11 @@ namespace PomodoroTimer
 
                 StatusText.Text = "Рабочий период завершён";
 
-                // Современное уведомление Windows 11
                 ShowModernNotification(
                     "Рабочий период завершён! 🍅",
                     $"Таймер \"{_currentPreset.Name}\" завершён. Время отдохнуть!",
                     "work"
                 );
-
-                // Оставляем старое для совместимости
-                // _notifyIcon.ShowBalloonTip(
-                //     5000,
-                //     "Pomodoro Timer",
-                //     $"Рабочий таймер \"{_currentPreset.Name}\" завершён.",
-                //     ToolTipIcon.Info
-               //  );
 
                 _isWorking = false;
             }
@@ -259,30 +262,32 @@ namespace PomodoroTimer
 
                 StatusText.Text = "Период отдыха завершён";
 
-                // Современное уведомление Windows 11
                 ShowModernNotification(
                     "Отдых завершён! ⏰",
                     $"Таймер отдыха \"{_currentPreset.Name}\" завершён. Готовы к работе?",
                     "rest"
                 );
 
-                // Оставляем старое для совместимости
-                // _notifyIcon.ShowBalloonTip(
-                //     5000,
-                //     "Pomodoro Timer",
-                //     $"Таймер отдыха \"{_currentPreset.Name}\" завершён.",
-                //     ToolTipIcon.Info
-                // );
-
                 _isWorking = true;
             }
 
-            _notifyIcon.Icon = CreateTrayIcon("00", false);
+            _periodStartTime = null; // Сбрасываем время начала
+            UpdateTrayIcon("00", false);
             UpdateStartPauseButton();
 
             if (AutoContinueCheck.IsChecked == true)
             {
-                StartTimer();
+                // Небольшая задержка перед автостартом для лучшего UX
+                var autoStartTimer = new DispatcherTimer 
+                { 
+                    Interval = TimeSpan.FromSeconds(1) 
+                };
+                autoStartTimer.Tick += (s, e) =>
+                {
+                    autoStartTimer.Stop();
+                    StartTimer();
+                };
+                autoStartTimer.Start();
             }
         }
 
@@ -291,9 +296,7 @@ namespace PomodoroTimer
             if (StartPauseButton == null)
                 return;
 
-            var tooltipText = _isRunning
-                ? "Пауза таймера (Ctrl+Alt+S)\nЗапуск: Ctrl+Alt+D"
-                : "Запуск таймера (Ctrl+Alt+D)\nПауза: Ctrl+Alt+S";
+            var tooltipText = "Запуск/Пауза таймера (Ctrl+Alt+D)\nОстановка и сброс: Ctrl+Alt+S";
 
             StartPauseButton.ToolTip = tooltipText;
             AutomationProperties.SetName(StartPauseButton, _isRunning ? "Пауза таймера" : "Запуск таймера");
@@ -310,8 +313,7 @@ namespace PomodoroTimer
             }
             catch
             {
-                // Если не получилось показать современное уведомление,
-                // просто игнорируем (старое balloon tip покажется)
+                // Fallback - если не получилось показать современное уведомление
             }
         }
 
@@ -323,24 +325,17 @@ namespace PomodoroTimer
         {
             EnsureCurrentDay();
 
-            var now = DateTime.Now;
+            if (_periodStartTime == null)
+            {
+                _periodStartTime = DateTime.Now.AddMinutes(-_currentPreset.WorkMinutes);
+            }
 
-            // длительность помидоро (можно считать только для работы,
-            // но на будущее берём текущий режим)
-            double duration = _isWorking
-                ? _currentPreset.WorkMinutes
-                : _currentPreset.RestMinutes;
-
-            // время окончания
-            double endMinutes = now.Hour * 60 + now.Minute + now.Second / 60.0;
-
-            // время начала = конец - длительность
-            double startMinutes = endMinutes - duration;
-            if (startMinutes < 0) startMinutes = 0;
+            var startTime = _periodStartTime.Value;
+            double startMinutes = startTime.Hour * 60 + startTime.Minute + startTime.Second / 60.0;
+            double duration = _currentPreset.WorkMinutes;
 
             var entry = new PomodoroStatsEntry
             {
-                // в поле TimeMinutes теперь кладём ВРЕМЯ НАЧАЛА
                 TimeMinutes = startMinutes,
                 DurationMinutes = duration,
                 Type = "work"
@@ -574,11 +569,11 @@ namespace PomodoroTimer
 
             var menu = new ContextMenuStrip();
 
-            var startItem = new ToolStripMenuItem("Start", null, (_, _) => StartTimer());
-            var pauseItem = new ToolStripMenuItem("Pause", null, (_, _) => PauseTimer());
-            var stopItem = new ToolStripMenuItem("Stop", null, (_, _) => StopTimer());
-            var showItem = new ToolStripMenuItem("Show", null, (_, _) => ShowWindow());
-            var quitItem = new ToolStripMenuItem("Quit", null, (_, _) => QuitFromExternal());
+            var startItem = new ToolStripMenuItem("Start", null, (_, _) => Dispatcher.Invoke(StartTimer));
+            var pauseItem = new ToolStripMenuItem("Pause", null, (_, _) => Dispatcher.Invoke(PauseTimer));
+            var stopItem = new ToolStripMenuItem("Stop", null, (_, _) => Dispatcher.Invoke(StopTimer));
+            var showItem = new ToolStripMenuItem("Show", null, (_, _) => Dispatcher.Invoke(ShowWindow));
+            var quitItem = new ToolStripMenuItem("Quit", null, (_, _) => Dispatcher.Invoke(QuitFromExternal));
 
             menu.Items.Add(startItem);
             menu.Items.Add(pauseItem);
@@ -595,7 +590,7 @@ namespace PomodoroTimer
         {
             if (e.Button == System.Windows.Forms.MouseButtons.Left)
             {
-                ShowWindow();
+                Dispatcher.Invoke(ShowWindow);
             }
         }
 
@@ -613,40 +608,55 @@ namespace PomodoroTimer
             _reallyQuit = true;
             StatsService.SaveStats(_stats);
             _notifyIcon.Visible = false;
+            
+            // Освобождаем иконку
+            if (_currentTrayIcon != null)
+            {
+                _currentTrayIcon.Dispose();
+                _currentTrayIcon = null;
+            }
+            
             _notifyIcon.Dispose();
             Application.Current.Shutdown();
         }
 
-        private System.Drawing.Icon CreateTrayIcon(string minutesText, bool red)
+        private void UpdateTrayIcon(string minutesText, bool red)
         {
-            int size = 256; // Увеличен размер для лучшего качества
+            if (minutesText == _lastTrayMinutes)
+                return;
 
-            using var bmp = new System.Drawing.Bitmap(
-                size,
-                size,
-                System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+            _lastTrayMinutes = minutesText;
 
-            using (var g = System.Drawing.Graphics.FromImage(bmp))
+            // Освобождаем старую иконку
+            if (_currentTrayIcon != null)
             {
-                g.Clear(System.Drawing.Color.Transparent);
+                _currentTrayIcon.Dispose();
+            }
+
+            _currentTrayIcon = CreateTrayIcon(minutesText, red);
+            _notifyIcon.Icon = _currentTrayIcon;
+        }
+
+        private Icon CreateTrayIcon(string minutesText, bool red)
+        {
+            int size = 256;
+
+            using var bmp = new Bitmap(size, size, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+            using (var g = Graphics.FromImage(bmp))
+            {
+                g.Clear(Color.Transparent);
                 g.SmoothingMode = SmoothingMode.AntiAlias;
                 g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
                 g.InterpolationMode = InterpolationMode.HighQualityBicubic;
 
                 string text = string.IsNullOrWhiteSpace(minutesText) ? "00" : minutesText.Trim();
 
-                // Используем более современный и чёткий шрифт
-                using var font = new System.Drawing.Font(
-                    "Segoe UI",
-                    180f, // Увеличен размер для лучшей читаемости
-                    System.Drawing.FontStyle.Bold,
-                    System.Drawing.GraphicsUnit.Pixel);
+                using var font = new Font("Segoe UI", 180f, System.Drawing.FontStyle.Bold, GraphicsUnit.Pixel);
 
                 var mainColor = red
-                    ? System.Drawing.Color.FromArgb(255, 235, 87, 87) // Более яркий красный
-                    : System.Drawing.Color.FromArgb(255, 255, 255, 255); // Чистый белый
+                    ? Color.FromArgb(255, 235, 87, 87)
+                    : Color.FromArgb(255, 255, 255, 255);
 
-                // Измеряем размер текста с дополнительными параметрами для точности
                 var format = new StringFormat(StringFormat.GenericDefault)
                 {
                     Alignment = StringAlignment.Center,
@@ -655,12 +665,9 @@ namespace PomodoroTimer
                 
                 var textSize = g.MeasureString(text, font, new PointF(0, 0), format);
 
-                // Центрируем с учётом дополнительных отступов и сдвигом вверх
-                // Добавляем 10% ширины для гарантии, что цифры не обрежутся
                 float x = (size - textSize.Width) / 2f - textSize.Width * 0.16f;
-                float y = (size - textSize.Height) / 2f - 8f; // Сдвиг вверх
+                float y = (size - textSize.Height) / 2f - 8f;
 
-                // Создаём путь для текста
                 using var path = new GraphicsPath();
                 path.AddString(
                     text,
@@ -670,34 +677,33 @@ namespace PomodoroTimer
                     new PointF(x, y),
                     StringFormat.GenericDefault);
 
-                // Добавляем мягкую тень для глубины
-                using var shadowBrush = new SolidBrush(System.Drawing.Color.FromArgb(160, 0, 0, 0));
+                // Тень
+                using var shadowBrush = new SolidBrush(Color.FromArgb(160, 0, 0, 0));
                 var shadowMatrix = new Matrix();
                 shadowMatrix.Translate(3, 4);
                 path.Transform(shadowMatrix);
                 g.FillPath(shadowBrush, path);
 
-                // Возвращаем путь на место
                 shadowMatrix.Reset();
                 shadowMatrix.Translate(-3, -4);
                 path.Transform(shadowMatrix);
 
-                // Рисуем контур для чёткости
-                using var outlinePen = new Pen(System.Drawing.Color.FromArgb(100, 0, 0, 0), 2f);
+                // Контур
+                using var outlinePen = new Pen(Color.FromArgb(100, 0, 0, 0), 2f);
                 g.DrawPath(outlinePen, path);
 
-                // Основной текст с градиентом
+                // Основной текст
                 using var textBrush = new SolidBrush(mainColor);
                 g.FillPath(textBrush, path);
 
-                // Добавляем лёгкий блик сверху для объёмности
+                // Блик для белого текста
                 if (!red)
                 {
                     var highlightRect = new RectangleF(x, y, textSize.Width, textSize.Height / 2);
                     using var highlightBrush = new LinearGradientBrush(
                         highlightRect,
-                        System.Drawing.Color.FromArgb(40, 255, 255, 255),
-                        System.Drawing.Color.FromArgb(0, 255, 255, 255),
+                        Color.FromArgb(40, 255, 255, 255),
+                        Color.FromArgb(0, 255, 255, 255),
                         LinearGradientMode.Vertical);
                     
                     g.FillPath(highlightBrush, path);
@@ -705,7 +711,13 @@ namespace PomodoroTimer
             }
 
             IntPtr hIcon = bmp.GetHicon();
-            return System.Drawing.Icon.FromHandle(hIcon);
+            var icon = System.Drawing.Icon.FromHandle(hIcon);
+            
+            // Важно: освобождаем GDI ресурс, но не сам Icon
+            // Icon будет освобождён позже через Dispose
+            DestroyIcon(hIcon);
+            
+            return icon;
         }
 
         #endregion
@@ -714,16 +726,32 @@ namespace PomodoroTimer
 
         private void Window_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
         {
-            if (e.Key == Key.Left)
+            // Навигация по датам (только если не фокус на ListBox)
+            if (e.Key == Key.Left && !IsPresetListFocused())
             {
                 ChangeViewedDay(-1);
                 e.Handled = true;
                 return;
             }
 
-            if (e.Key == Key.Right)
+            if (e.Key == Key.Right && !IsPresetListFocused())
             {
                 ChangeViewedDay(1);
+                e.Handled = true;
+                return;
+            }
+
+            // Навигация по пресетам
+            if (e.Key == Key.Up && !IsPresetListFocused())
+            {
+                ChangePreset(-1);
+                e.Handled = true;
+                return;
+            }
+
+            if (e.Key == Key.Down && !IsPresetListFocused())
+            {
+                ChangePreset(1);
                 e.Handled = true;
                 return;
             }
@@ -736,16 +764,20 @@ namespace PomodoroTimer
 
             if (e.Key == Key.D)
             {
-                StartTimer();
+                // Переключение старт/пауза
+                if (_isRunning)
+                {
+                    PauseTimer();
+                }
+                else
+                {
+                    StartTimer();
+                }
                 e.Handled = true;
             }
             else if (e.Key == Key.S)
             {
-                PauseTimer();
-                e.Handled = true;
-            }
-            else if (e.Key == Key.F)
-            {
+                // Полная остановка и сброс таймера
                 StopTimer();
                 e.Handled = true;
             }
@@ -754,6 +786,33 @@ namespace PomodoroTimer
                 ToggleRest();
                 e.Handled = true;
             }
+        }
+
+        private bool IsPresetListFocused()
+        {
+            return PresetList.IsFocused || PresetList.IsKeyboardFocusWithin;
+        }
+
+        private void ChangePreset(int direction)
+        {
+            if (_presets.Count == 0)
+                return;
+
+            int currentIndex = _presets.IndexOf(_currentPreset);
+            if (currentIndex == -1)
+                currentIndex = 0;
+
+            int newIndex = currentIndex + direction;
+
+            // Циклическая навигация
+            if (newIndex < 0)
+                newIndex = _presets.Count - 1;
+            else if (newIndex >= _presets.Count)
+                newIndex = 0;
+
+            _currentPreset = _presets[newIndex];
+            PresetList.SelectedItem = _currentPreset;
+            PresetList.ScrollIntoView(_currentPreset);
         }
 
         public void ToggleRest()
@@ -765,7 +824,7 @@ namespace PomodoroTimer
                 ? "Выбран рабочий период"
                 : "Выбран период отдыха";
             TimeText.Text = "00:00";
-            _notifyIcon.Text = $"Pomodoro Timer – {(_isWorking ? "Работа" : "Отдых")}";
+            _notifyIcon.Text = $"Pomodoro Timer — {(_isWorking ? "Работа" : "Отдых")}";
         }
 
         #endregion
@@ -781,6 +840,12 @@ namespace PomodoroTimer
             }
             else
             {
+                // Освобождаем иконку перед закрытием
+                if (_currentTrayIcon != null)
+                {
+                    _currentTrayIcon.Dispose();
+                    _currentTrayIcon = null;
+                }
                 base.OnClosing(e);
             }
         }
