@@ -10,6 +10,25 @@
         Foreground="{StaticResource TextBrush}"
         WindowStartupLocation="CenterScreen"
         PreviewKeyDown="Window_PreviewKeyDown">
+    <Window.Resources>
+        <Style x:Key="ControlIconButtonStyle"
+               TargetType="Button"
+               BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Width" Value="64"/>
+            <Setter Property="Height" Value="64"/>
+            <Setter Property="Padding" Value="0"/>
+        </Style>
+
+        <Geometry x:Key="ChangeIconGeometry">
+            M480,880Q337,880 227,790Q117,700 88,560L170,560Q198,666 284,733Q370,800 480,800Q566,800 640,757.5Q714,715 756,640L640,640L640,560L880,560L880,800L800,800L800,720Q743,796 659,838Q575,880 480,880ZM480,600Q430,600 395,565Q360,530 360,480Q360,430 395,395Q430,360 480,360Q530,360 565,395Q600,430 600,480Q600,530 565,565Q530,600 480,600ZM80,400L80,160L160,160L160,240Q217,164 301,122Q385,80 480,80Q623,80 733,170Q843,260 872,400L790,400Q762,294 676,227Q590,160 480,160Q394,160 320,202.5Q246,245 204,320L320,320L320,400L80,400Z
+        </Geometry>
+        <Geometry x:Key="PlayPauseIconGeometry">
+            M200,648L200,312L440,480L200,648ZM520,640L520,320L600,320L600,640L520,640ZM680,640L680,320L760,320L760,640L680,640Z
+        </Geometry>
+        <Geometry x:Key="StopCircleIconGeometry">
+            M320,640L640,640L640,320L320,320L320,640ZM480,880Q397,880 324,848.5Q251,817 197,763Q143,709 111.5,636Q80,563 80,480Q80,397 111.5,324Q143,251 197,197Q251,143 324,111.5Q397,80 480,80Q563,80 636,111.5Q709,143 763,197Q817,251 848.5,324Q880,397 880,480Q880,563 848.5,636Q817,709 763,763Q709,817 636,848.5Q563,880 480,880ZM480,800Q614,800 707,707Q800,614 800,480Q800,346 707,253Q614,160 480,160Q346,160 253,253Q160,346 160,480Q160,614 253,707Q346,800 480,800ZM480,480Q480,480 480,480Q480,480 480,480Q480,480 480,480Q480,480 480,480Q480,480 480,480Q480,480 480,480Q480,480 480,480Z
+        </Geometry>
+    </Window.Resources>
     <Grid Background="{StaticResource BackgroundBrush}" Margin="12">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -38,30 +57,39 @@
                     Orientation="Horizontal"
                     HorizontalAlignment="Center"
                     Margin="0,0,0,8">
-            <Button Content="Change"
-                    Width="90"
+            <Button Style="{StaticResource ControlIconButtonStyle}"
                     Click="Change_Click"
-                    ToolTipService.InitialShowDelay="2000">
+                    ToolTipService.InitialShowDelay="2000"
+                    AutomationProperties.Name="Сменить режим">
                 <Button.ToolTip>
                     <ToolTip Content="Горячая клавиша: Ctrl+Alt+A"/>
                 </Button.ToolTip>
+                <Viewbox Width="32" Height="32">
+                    <Path Data="{StaticResource ChangeIconGeometry}"
+                          Fill="{StaticResource TextBrush}"/>
+                </Viewbox>
             </Button>
             <Button x:Name="StartPauseButton"
-                    Content="Start"
-                    Width="90"
+                    Style="{StaticResource ControlIconButtonStyle}"
                     Click="StartPause_Click"
-                    ToolTipService.InitialShowDelay="2000">
-                <Button.ToolTip>
-                    <ToolTip Content="Горячие клавиши: Start — Ctrl+Alt+D, Pause — Ctrl+Alt+S"/>
-                </Button.ToolTip>
+                    ToolTipService.InitialShowDelay="2000"
+                    AutomationProperties.Name="Запустить или поставить на паузу таймер">
+                <Viewbox Width="32" Height="32">
+                    <Path Data="{StaticResource PlayPauseIconGeometry}"
+                          Fill="{StaticResource TextBrush}"/>
+                </Viewbox>
             </Button>
-            <Button Content="Stop"
-                    Width="90"
+            <Button Style="{StaticResource ControlIconButtonStyle}"
                     Click="Stop_Click"
-                    ToolTipService.InitialShowDelay="2000">
+                    ToolTipService.InitialShowDelay="2000"
+                    AutomationProperties.Name="Остановить таймер">
                 <Button.ToolTip>
                     <ToolTip Content="Горячая клавиша: Ctrl+Alt+F"/>
                 </Button.ToolTip>
+                <Viewbox Width="32" Height="32">
+                    <Path Data="{StaticResource StopCircleIconGeometry}"
+                          Fill="{StaticResource TextBrush}"/>
+                </Viewbox>
             </Button>
         </StackPanel>
 

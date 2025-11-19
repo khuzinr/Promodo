@@ -4,6 +4,7 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Linq;
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Forms;
 using System.Windows.Input;
@@ -290,7 +291,12 @@ namespace PomodoroTimer
             if (StartPauseButton == null)
                 return;
 
-            StartPauseButton.Content = _isRunning ? "Pause" : "Start";
+            var tooltipText = _isRunning
+                ? "Пауза таймера (Ctrl+Alt+S)\nЗапуск: Ctrl+Alt+D"
+                : "Запуск таймера (Ctrl+Alt+D)\nПауза: Ctrl+Alt+S";
+
+            StartPauseButton.ToolTip = tooltipText;
+            AutomationProperties.SetName(StartPauseButton, _isRunning ? "Пауза таймера" : "Запуск таймера");
         }
 
         private void ShowModernNotification(string title, string message, string type)
