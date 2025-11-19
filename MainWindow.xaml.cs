@@ -566,7 +566,7 @@ namespace PomodoroTimer
                 Text = "Pomodoro Timer"
             };
 
-            // Создаем начальную иконку
+            // Создаем начальную иконку с "00"
             _currentTrayIcon = CreateTrayIcon("00", false);
             _notifyIcon.Icon = _currentTrayIcon;
 
@@ -642,58 +642,83 @@ namespace PomodoroTimer
 
         private Icon CreateTrayIcon(string minutesText, bool red)
         {
-            int size = 64; // Уменьшаем размер для системного трея
-            
-            using var bmp = new Bitmap(size, size);
+            int size = 256;
+
+            using var bmp = new Bitmap(
+                size,
+                size,
+                System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+
             using (var g = Graphics.FromImage(bmp))
             {
                 g.Clear(Color.Transparent);
                 g.SmoothingMode = SmoothingMode.AntiAlias;
-                g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
+                g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
+                g.InterpolationMode = InterpolationMode.HighQualityBicubic;
 
                 string text = string.IsNullOrWhiteSpace(minutesText) ? "00" : minutesText.Trim();
 
-                // Используем подходящий размер шрифта для маленькой иконки
-                using var font = new Font("Arial", 42f, System.Drawing.FontStyle.Bold, GraphicsUnit.Pixel);
+                using var font = new Font(
+                    "Segoe UI",
+                    180f,
+                    System.Drawing.FontStyle.Bold,
+                    GraphicsUnit.Pixel);
 
-                // Цвет текста
-                var textColor = red
-                    ? Color.FromArgb(255, 255, 80, 80) // Яркий красный
-                    : Color.White; // Белый
+                var mainColor = red
+                    ? Color.FromArgb(255, 235, 87, 87)
+                    : Color.FromArgb(255, 255, 255, 255);
 
-                // Измеряем текст
-                var textSize = g.MeasureString(text, font);
-                float x = (size - textSize.Width) / 2f;
-                float y = (size - textSize.Height) / 2f;
+                var format = new StringFormat(StringFormat.GenericDefault)
+                {
+                    Alignment = StringAlignment.Center,
+                    LineAlignment = StringAlignment.Center
+                };
+                
+                var textSize = g.MeasureString(text, font, new PointF(0, 0), format);
 
-                // Рисуем черный фон для контраста
-                using var backgroundBrush = new SolidBrush(Color.FromArgb(220, 0, 0, 0));
-                g.FillEllipse(backgroundBrush, 2, 2, size - 4, size - 4);
+                float x = (size - textSize.Width) / 2f - textSize.Width * 0.16f;
+                float y = (size - textSize.Height) / 2f - 8f;
 
-                // Рисуем черную обводку текста для контраста
                 using var path = new GraphicsPath();
                 path.AddString(
                     text,
                     font.FontFamily,
-                    (int)System.Drawing.FontStyle.Bold,
+                    (int)font.Style,
                     g.DpiY * font.Size / 72,
                     new PointF(x, y),
                     StringFormat.GenericDefault);
 
-                // Толстая черная обводка
-                using var outlinePen = new Pen(Color.Black, 3f);
+                using var shadowBrush = new SolidBrush(Color.FromArgb(160, 0, 0, 0));
+                var shadowMatrix = new Matrix();
+                shadowMatrix.Translate(3, 4);
+                path.Transform(shadowMatrix);
+                g.FillPath(shadowBrush, path);
+
+                shadowMatrix.Reset();
+                shadowMatrix.Translate(-3, -4);
+                path.Transform(shadowMatrix);
+
+                using var outlinePen = new Pen(Color.FromArgb(100, 0, 0, 0), 2f);
                 g.DrawPath(outlinePen, path);
 
-                // Сам текст
-                using var textBrush = new SolidBrush(textColor);
+                using var textBrush = new SolidBrush(mainColor);
                 g.FillPath(textBrush, path);
+
+                if (!red)
+                {
+                    var highlightRect = new RectangleF(x, y, textSize.Width, textSize.Height / 2);
+                    using var highlightBrush = new LinearGradientBrush(
+                        highlightRect,
+                        Color.FromArgb(40, 255, 255, 255),
+                        Color.FromArgb(0, 255, 255, 255),
+                        LinearGradientMode.Vertical);
+                    
+                    g.FillPath(highlightBrush, path);
+                }
             }
 
             IntPtr hIcon = bmp.GetHicon();
-            var icon = System.Drawing.Icon.FromHandle(hIcon);
-            DestroyIcon(hIcon);
-            
-            return icon;
+            return System.Drawing.Icon.FromHandle(hIcon);
         }
 
         #endregion
