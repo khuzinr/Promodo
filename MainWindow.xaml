@@ -38,20 +38,21 @@
                     Orientation="Horizontal"
                     HorizontalAlignment="Center"
                     Margin="0,0,0,8">
-            <Button Content="Start"
+            <Button Content="Change"
                     Width="90"
-                    Click="Start_Click"
+                    Click="Change_Click"
                     ToolTipService.InitialShowDelay="2000">
                 <Button.ToolTip>
-                    <ToolTip Content="Горячая клавиша: Ctrl+Alt+D"/>
+                    <ToolTip Content="Горячая клавиша: Ctrl+Alt+A"/>
                 </Button.ToolTip>
             </Button>
-            <Button Content="Pause"
+            <Button x:Name="StartPauseButton"
+                    Content="Start"
                     Width="90"
-                    Click="Pause_Click"
+                    Click="StartPause_Click"
                     ToolTipService.InitialShowDelay="2000">
                 <Button.ToolTip>
-                    <ToolTip Content="Горячая клавиша: Ctrl+Alt+S"/>
+                    <ToolTip Content="Горячие клавиши: Start — Ctrl+Alt+D, Pause — Ctrl+Alt+S"/>
                 </Button.ToolTip>
             </Button>
             <Button Content="Stop"
