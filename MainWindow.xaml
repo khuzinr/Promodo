@@ -74,6 +74,9 @@
                     Click="StartPause_Click"
                     ToolTipService.InitialShowDelay="2000"
                     AutomationProperties.Name="Запустить или поставить на паузу таймер">
+                <Button.ToolTip>
+                    <ToolTip Content="Горячая клавиша: Ctrl+Alt+D"/>
+                </Button.ToolTip>
                 <Viewbox Width="32" Height="32">
                     <Path Data="{StaticResource PlayPauseIconGeometry}"
                           Fill="{StaticResource TextBrush}"/>
@@ -84,7 +87,7 @@
                     ToolTipService.InitialShowDelay="2000"
                     AutomationProperties.Name="Остановить таймер">
                 <Button.ToolTip>
-                    <ToolTip Content="Горячая клавиша: Ctrl+Alt+F"/>
+                    <ToolTip Content="Горячая клавиша: Ctrl+Alt+S"/>
                 </Button.ToolTip>
                 <Viewbox Width="32" Height="32">
                     <Path Data="{StaticResource StopCircleIconGeometry}"

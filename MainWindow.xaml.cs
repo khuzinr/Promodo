@@ -110,6 +110,11 @@ namespace PomodoroTimer
 
         private void StartPause_Click(object sender, RoutedEventArgs e)
         {
+            ToggleStartPause();
+        }
+
+        private void ToggleStartPause()
+        {
             if (_isRunning)
             {
                 PauseTimer();
@@ -728,6 +733,20 @@ namespace PomodoroTimer
                 return;
             }
 
+            if (e.Key == Key.Up)
+            {
+                ChangePresetSelection(-1);
+                e.Handled = true;
+                return;
+            }
+
+            if (e.Key == Key.Down)
+            {
+                ChangePresetSelection(1);
+                e.Handled = true;
+                return;
+            }
+
             bool ctrl = Keyboard.IsKeyDown(Key.LeftCtrl) || Keyboard.IsKeyDown(Key.RightCtrl);
             bool alt = Keyboard.IsKeyDown(Key.LeftAlt) || Keyboard.IsKeyDown(Key.RightAlt);
 
@@ -736,15 +755,10 @@ namespace PomodoroTimer
 
             if (e.Key == Key.D)
             {
-                StartTimer();
+                ToggleStartPause();
                 e.Handled = true;
             }
             else if (e.Key == Key.S)
-            {
-                PauseTimer();
-                e.Handled = true;
-            }
-            else if (e.Key == Key.F)
             {
                 StopTimer();
                 e.Handled = true;
@@ -754,6 +768,33 @@ namespace PomodoroTimer
                 ToggleRest();
                 e.Handled = true;
             }
+        }
+
+        private void ChangePresetSelection(int direction)
+        {
+            if (_presets.Count == 0)
+                return;
+
+            int currentIndex = PresetList.SelectedIndex;
+            if (currentIndex < 0)
+            {
+                currentIndex = 0;
+            }
+
+            int newIndex = currentIndex + direction;
+            if (newIndex < 0)
+            {
+                newIndex = 0;
+            }
+            else if (newIndex >= _presets.Count)
+            {
+                newIndex = _presets.Count - 1;
+            }
+            if (newIndex == currentIndex)
+                return;
+
+            PresetList.SelectedIndex = newIndex;
+            PresetList.ScrollIntoView(PresetList.SelectedItem);
         }
 
         public void ToggleRest()
