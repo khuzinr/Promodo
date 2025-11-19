@@ -121,6 +121,11 @@ namespace PomodoroTimer
             StopTimer();
         }
 
+        private void ChangeMode_Click(object sender, RoutedEventArgs e)
+        {
+            ToggleRest();
+        }
+
         public void StartTimer()
         {
             // Если уже идёт – ничего не делаем

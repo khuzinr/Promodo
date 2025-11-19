@@ -10,6 +10,27 @@
         Foreground="{StaticResource TextBrush}"
         WindowStartupLocation="CenterScreen"
         PreviewKeyDown="Window_PreviewKeyDown">
+    <Window.Resources>
+        <SolidColorBrush x:Key="TimerIconBrush" Color="#FFE3E3E3" />
+
+        <Geometry x:Key="PlayPauseIconGeometry">
+            M200-312v-336l240 168-240 168Zm320-8v-320h80v320h-80Zm160 0v-320h80v320h-80Z
+        </Geometry>
+        <Geometry x:Key="StopIconGeometry">
+            M320-320h320v-320H320v320ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z
+        </Geometry>
+        <Geometry x:Key="ChangeIconGeometry">
+            M480-80q-143 0-253-90T88-400h82q28 106 114 173t196 67q86 0 160-42.5T756-320H640v-80h240v240h-80v-80q-57 76-141 118T480-80Zm0-280q-50 0-85-35t-35-85q0-50 35-85t85-35q50 0 85 35t35 85q0 50-35 85t-85 35ZM80-560v-240h80v80q57-76 141-118t179-42q143 0 253 90t139 230h-82q-28-106-114-173t-196-67q-86 0-160 42.5T204-640h116v80H80Z
+        </Geometry>
+
+        <Style x:Key="TimerControlButtonStyle"
+               TargetType="Button"
+               BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Width" Value="56" />
+            <Setter Property="Height" Value="56" />
+            <Setter Property="Padding" Value="10" />
+        </Style>
+    </Window.Resources>
     <Grid Background="{StaticResource BackgroundBrush}" Margin="12">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -38,29 +59,53 @@
                     Orientation="Horizontal"
                     HorizontalAlignment="Center"
                     Margin="0,0,0,8">
-            <Button Content="Start"
-                    Width="90"
+            <Button Style="{StaticResource TimerControlButtonStyle}"
                     Click="Start_Click"
                     ToolTipService.InitialShowDelay="2000">
                 <Button.ToolTip>
-                    <ToolTip Content="Горячая клавиша: Ctrl+Alt+D"/>
+                    <ToolTip Content="Старт (Ctrl+Alt+D)"/>
                 </Button.ToolTip>
+                <Viewbox Width="28" Height="28">
+                    <Path Data="{StaticResource PlayPauseIconGeometry}"
+                          Stretch="Uniform"
+                          Fill="{StaticResource TimerIconBrush}"/>
+                </Viewbox>
             </Button>
-            <Button Content="Pause"
-                    Width="90"
+            <Button Style="{StaticResource TimerControlButtonStyle}"
                     Click="Pause_Click"
                     ToolTipService.InitialShowDelay="2000">
                 <Button.ToolTip>
-                    <ToolTip Content="Горячая клавиша: Ctrl+Alt+S"/>
+                    <ToolTip Content="Пауза (Ctrl+Alt+S)"/>
                 </Button.ToolTip>
+                <Viewbox Width="28" Height="28">
+                    <Path Data="{StaticResource PlayPauseIconGeometry}"
+                          Stretch="Uniform"
+                          Fill="{StaticResource TimerIconBrush}"/>
+                </Viewbox>
             </Button>
-            <Button Content="Stop"
-                    Width="90"
+            <Button Style="{StaticResource TimerControlButtonStyle}"
                     Click="Stop_Click"
                     ToolTipService.InitialShowDelay="2000">
                 <Button.ToolTip>
-                    <ToolTip Content="Горячая клавиша: Ctrl+Alt+F"/>
+                    <ToolTip Content="Стоп (Ctrl+Alt+F)"/>
                 </Button.ToolTip>
+                <Viewbox Width="28" Height="28">
+                    <Path Data="{StaticResource StopIconGeometry}"
+                          Stretch="Uniform"
+                          Fill="{StaticResource TimerIconBrush}"/>
+                </Viewbox>
+            </Button>
+            <Button Style="{StaticResource TimerControlButtonStyle}"
+                    Click="ChangeMode_Click"
+                    ToolTipService.InitialShowDelay="2000">
+                <Button.ToolTip>
+                    <ToolTip Content="Сменить режим (Ctrl+Alt+A)"/>
+                </Button.ToolTip>
+                <Viewbox Width="28" Height="28">
+                    <Path Data="{StaticResource ChangeIconGeometry}"
+                          Stretch="Uniform"
+                          Fill="{StaticResource TimerIconBrush}"/>
+                </Viewbox>
             </Button>
         </StackPanel>
 
