@@ -51,7 +51,7 @@
                     Click="Pause_Click"
                     ToolTipService.InitialShowDelay="2000">
                 <Button.ToolTip>
-                    <ToolTip Content="Горячая клавиша: Ctrl+Alt+P"/>
+                    <ToolTip Content="Горячая клавиша: Ctrl+Alt+S"/>
                 </Button.ToolTip>
             </Button>
             <Button Content="Stop"
@@ -59,7 +59,7 @@
                     Click="Stop_Click"
                     ToolTipService.InitialShowDelay="2000">
                 <Button.ToolTip>
-                    <ToolTip Content="Горячая клавиша: Ctrl+Alt+S"/>
+                    <ToolTip Content="Горячая клавиша: Ctrl+Alt+F"/>
                 </Button.ToolTip>
             </Button>
         </StackPanel>

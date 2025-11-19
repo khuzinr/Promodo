@@ -712,12 +712,12 @@ namespace PomodoroTimer
                 StartTimer();
                 e.Handled = true;
             }
-            else if (e.Key == Key.P)
+            else if (e.Key == Key.S)
             {
                 PauseTimer();
                 e.Handled = true;
             }
-            else if (e.Key == Key.S)
+            else if (e.Key == Key.F)
             {
                 StopTimer();
                 e.Handled = true;
