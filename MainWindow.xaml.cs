@@ -109,6 +109,11 @@ namespace PomodoroTimer
 
         private void StartPause_Click(object sender, RoutedEventArgs e)
         {
+            ToggleStartPause();
+        }
+
+        private void ToggleStartPause()
+        {
             if (_isRunning)
             {
                 PauseTimer();
@@ -722,6 +727,20 @@ namespace PomodoroTimer
                 return;
             }
 
+            if (e.Key == Key.Up)
+            {
+                ChangePresetSelection(-1);
+                e.Handled = true;
+                return;
+            }
+
+            if (e.Key == Key.Down)
+            {
+                ChangePresetSelection(1);
+                e.Handled = true;
+                return;
+            }
+
             bool ctrl = Keyboard.IsKeyDown(Key.LeftCtrl) || Keyboard.IsKeyDown(Key.RightCtrl);
             bool alt = Keyboard.IsKeyDown(Key.LeftAlt) || Keyboard.IsKeyDown(Key.RightAlt);
 
@@ -730,15 +749,10 @@ namespace PomodoroTimer
 
             if (e.Key == Key.D)
             {
-                StartTimer();
+                ToggleStartPause();
                 e.Handled = true;
             }
             else if (e.Key == Key.S)
-            {
-                PauseTimer();
-                e.Handled = true;
-            }
-            else if (e.Key == Key.F)
             {
                 StopTimer();
                 e.Handled = true;
@@ -763,6 +777,25 @@ namespace PomodoroTimer
         }
 
         #endregion
+
+        private void ChangePresetSelection(int offset)
+        {
+            if (_presets.Count == 0)
+                return;
+
+            int currentIndex = PresetList.SelectedIndex;
+
+            if (currentIndex < 0)
+                currentIndex = 0;
+
+            int newIndex = Math.Clamp(currentIndex + offset, 0, _presets.Count - 1);
+
+            if (newIndex == currentIndex)
+                return;
+
+            PresetList.SelectedIndex = newIndex;
+            PresetList.ScrollIntoView(PresetList.SelectedItem);
+        }
 
         #region Closing
 
