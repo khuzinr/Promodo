@@ -74,6 +74,7 @@ namespace PomodoroTimer
 
             // Tray
             SetupTrayIcon();
+            UpdateStartPauseButton();
         }
 
         protected override void OnSourceInitialized(EventArgs e)
@@ -106,14 +107,21 @@ namespace PomodoroTimer
 
         #region Timer logic
 
-        private void Start_Click(object sender, RoutedEventArgs e)
+        private void StartPause_Click(object sender, RoutedEventArgs e)
         {
-            StartTimer();
+            if (_isRunning)
+            {
+                PauseTimer();
+            }
+            else
+            {
+                StartTimer();
+            }
         }
 
-        private void Pause_Click(object sender, RoutedEventArgs e)
+        private void Change_Click(object sender, RoutedEventArgs e)
         {
-            PauseTimer();
+            ToggleRest();
         }
 
         private void Stop_Click(object sender, RoutedEventArgs e)
@@ -134,6 +142,7 @@ namespace PomodoroTimer
                 _timer.Start();
                 StatusText.Text = _isWorking ? "Работа" : "Отдых";
                 UpdateTimeDisplay();
+                UpdateStartPauseButton();
                 return;
             }
 
@@ -148,6 +157,7 @@ namespace PomodoroTimer
 
             StatusText.Text = _isWorking ? "Работа" : "Отдых";
             UpdateTimeDisplay();
+            UpdateStartPauseButton();
         }
 
         public void PauseTimer()
@@ -158,6 +168,7 @@ namespace PomodoroTimer
             _timer.Stop();
             _isRunning = false;
             StatusText.Text = "Пауза";
+            UpdateStartPauseButton();
         }
 
         public void StopTimer()
@@ -172,6 +183,7 @@ namespace PomodoroTimer
             _lastTrayMinutes = "00";
             _notifyIcon.Icon = CreateTrayIcon("00", false);
             _notifyIcon.Text = "Pomodoro Timer";
+            UpdateStartPauseButton();
         }
 
         private void Timer_Tick(object? sender, EventArgs e)
@@ -265,11 +277,20 @@ namespace PomodoroTimer
             }
 
             _notifyIcon.Icon = CreateTrayIcon("00", false);
+            UpdateStartPauseButton();
 
             if (AutoContinueCheck.IsChecked == true)
             {
                 StartTimer();
             }
+        }
+
+        private void UpdateStartPauseButton()
+        {
+            if (StartPauseButton == null)
+                return;
+
+            StartPauseButton.Content = _isRunning ? "Pause" : "Start";
         }
 
         private void ShowModernNotification(string title, string message, string type)
@@ -733,7 +754,12 @@ namespace PomodoroTimer
         {
             _isWorking = !_isWorking;
             StopTimer();
-            StartTimer();
+
+            StatusText.Text = _isWorking
+                ? "Выбран рабочий период"
+                : "Выбран период отдыха";
+            TimeText.Text = "00:00";
+            _notifyIcon.Text = $"Pomodoro Timer – {(_isWorking ? "Работа" : "Отдых")}";
         }
 
         #endregion
