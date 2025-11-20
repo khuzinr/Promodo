@@ -30,9 +30,9 @@ public class DailyChartControl : FrameworkElement
         if (ActualWidth <= 0 || ActualHeight <= 0) return;
 
         double marginLeft = 40;
-        double marginBottom = 25;
-        double marginTop = 10;
-        double marginRight = 10;
+        double marginBottom = 36;
+        double marginTop = 12;
+        double marginRight = 12;
 
         double w = ActualWidth - marginLeft - marginRight;
         double h = ActualHeight - marginTop - marginBottom;

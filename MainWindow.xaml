@@ -4,8 +4,8 @@
         xmlns:ctrl="clr-namespace:PomodoroTimer.Controls"
         Title="Pomodoro Timer"
         Width="580"
-        Height="680"
-        MinHeight="650"
+        Height="720"
+        MinHeight="700"
         Background="{StaticResource BackgroundBrush}"
         Foreground="{StaticResource TextBrush}"
         WindowStartupLocation="CenterScreen"
@@ -33,7 +33,6 @@
     </Window.Resources>
     <Grid Background="{StaticResource BackgroundBrush}" Margin="12">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -187,8 +186,8 @@
 
                     <ctrl:DailyChartControl x:Name="DailyChart"
                                             Grid.Row="2"
-                                            MinHeight="180"
-                                            Margin="0,0,0,12"/>
+                                            MinHeight="220"
+                                            Margin="0,0,0,16"/>
                 </Grid>
             </GroupBox>
         </Grid>
