@@ -42,6 +42,7 @@ namespace PomodoroTimer
         private string _lastTrayMinutes = "00";
         private Icon? _currentTrayIcon; // Для освобождения ресурсов
         private StatsWindow? _statsWindow;
+        private bool _restoreWindowOnFinish = true;
 
         public bool IsWorking => _isWorking;
 
@@ -80,6 +81,7 @@ namespace PomodoroTimer
             _viewedDate = DateTime.Today;
             _viewedDateKey = _currentDayKey;
             UpdateDailyChart();
+            UpdateSummaryStats();
 
             // Timer
             _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
@@ -92,6 +94,13 @@ namespace PomodoroTimer
             // Tray
             SetupTrayIcon();
             UpdateStartPauseButton();
+
+            _restoreWindowOnFinish = RestoreFromTrayCheck?.IsChecked == true;
+            if (RestoreFromTrayCheck != null)
+            {
+                RestoreFromTrayCheck.Checked += RestoreFromTrayCheck_OnChanged;
+                RestoreFromTrayCheck.Unchecked += RestoreFromTrayCheck_OnChanged;
+            }
         }
 
         protected override void OnSourceInitialized(EventArgs e)
@@ -258,6 +267,8 @@ namespace PomodoroTimer
             }
             else
             {
+                RegisterCompletedRest();
+
                 System.Media.SystemSounds.Asterisk.Play();
 
                 StatusText.Text = "Период отдыха завершён";
@@ -274,6 +285,11 @@ namespace PomodoroTimer
             _periodStartTime = null; // Сбрасываем время начала
             UpdateTrayIcon("00", false);
             UpdateStartPauseButton();
+
+            if (_restoreWindowOnFinish)
+            {
+                ShowWindow();
+            }
 
             if (AutoContinueCheck.IsChecked == true)
             {
@@ -323,22 +339,31 @@ namespace PomodoroTimer
 
         private void RegisterCompletedPomodoro()
         {
+            AddStatsEntry("work", _currentPreset.WorkMinutes);
+        }
+
+        private void RegisterCompletedRest()
+        {
+            AddStatsEntry("rest", _currentPreset.RestMinutes);
+        }
+
+        private void AddStatsEntry(string type, double durationMinutes)
+        {
             EnsureCurrentDay();
 
             if (_periodStartTime == null)
             {
-                _periodStartTime = DateTime.Now.AddMinutes(-_currentPreset.WorkMinutes);
+                _periodStartTime = DateTime.Now.AddMinutes(-durationMinutes);
             }
 
             var startTime = _periodStartTime.Value;
             double startMinutes = startTime.Hour * 60 + startTime.Minute + startTime.Second / 60.0;
-            double duration = _currentPreset.WorkMinutes;
 
             var entry = new PomodoroStatsEntry
             {
                 TimeMinutes = startMinutes,
-                DurationMinutes = duration,
-                Type = "work"
+                DurationMinutes = durationMinutes,
+                Type = type
             };
 
             _todayEntries.Add(entry);
@@ -350,6 +375,7 @@ namespace PomodoroTimer
 
             StatsService.SaveStats(_stats);
             _statsWindow?.RefreshData();
+            UpdateSummaryStats();
         }
 
         private static string FormatDateKey(DateTime date)
@@ -383,6 +409,72 @@ namespace PomodoroTimer
                 System.Globalization.CultureInfo.CurrentUICulture);
         }
 
+        private void UpdateSummaryStats()
+        {
+            double todayWork = SumMinutesForType(_currentDayKey, "work");
+            double todayRest = SumMinutesForType(_currentDayKey, "rest");
+            double rollingAverage = CalculateRollingAverageWorkMinutes(3);
+
+            if (TodayWorkText != null)
+                TodayWorkText.Text = FormatMinutes(todayWork);
+            if (TodayRestText != null)
+                TodayRestText.Text = FormatMinutes(todayRest);
+            if (RollingAverageText != null)
+                RollingAverageText.Text = FormatMinutes(rollingAverage);
+        }
+
+        private double SumMinutesForType(string key, string type)
+        {
+            if (!_stats.TryGetValue(key, out var entries) || entries == null)
+                return 0;
+
+            return entries
+                .Where(e => string.Equals(e.Type, type, StringComparison.OrdinalIgnoreCase))
+                .Sum(e => e.DurationMinutes);
+        }
+
+        private double CalculateRollingAverageWorkMinutes(int workdaysCount)
+        {
+            int collected = 0;
+            double totalMinutes = 0;
+            var cursor = DateTime.Today;
+            int guard = 0;
+
+            while (collected < workdaysCount && guard < 90)
+            {
+                if (IsWorkday(cursor))
+                {
+                    string key = FormatDateKey(cursor);
+                    totalMinutes += SumMinutesForType(key, "work");
+                    collected++;
+                }
+
+                cursor = cursor.AddDays(-1);
+                guard++;
+            }
+
+            if (collected == 0)
+                return 0;
+
+            return totalMinutes / collected;
+        }
+
+        private static bool IsWorkday(DateTime date)
+        {
+            return date.DayOfWeek is not DayOfWeek.Saturday and not DayOfWeek.Sunday;
+        }
+
+        private static string FormatMinutes(double minutes)
+        {
+            var span = TimeSpan.FromMinutes(minutes);
+            return $"{(int)span.TotalHours:00}:{span.Minutes:00}";
+        }
+
+        private void RestoreFromTrayCheck_OnChanged(object sender, RoutedEventArgs e)
+        {
+            _restoreWindowOnFinish = RestoreFromTrayCheck?.IsChecked == true;
+        }
+
         private void EnsureCurrentDay()
         {
             var today = DateTime.Today;
@@ -404,6 +496,7 @@ namespace PomodoroTimer
             }
 
             UpdateDailyChart();
+            UpdateSummaryStats();
         }
 
         private void ChangeViewedDay(int offset)
