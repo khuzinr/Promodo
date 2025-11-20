@@ -149,41 +149,28 @@
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
-                    <Grid Grid.Row="0">
-                        <Button Content="Окно статистики"
+                    <Grid Grid.Row="0"
+                          Margin="0,0,0,6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock x:Name="SummaryTotalsText"
+                                   Grid.Column="0"
+                                   FontWeight="Bold"
+                                   FontSize="14"
+                                   VerticalAlignment="Center"
+                                   Text="00:00/00:00/00:00"/>
+
+                        <Button Grid.Column="1"
+                                Content="Окно статистики"
                                 HorizontalAlignment="Right"
                                 Click="OpenStatsWindow_Click"/>
                     </Grid>
 
-                    <StackPanel Grid.Row="1"
-                                Orientation="Horizontal"
-                                HorizontalAlignment="Center"
-                                Margin="0,6,0,6">
-                        <StackPanel Orientation="Vertical" Margin="0,0,12,0">
-                            <TextBlock Text="Сегодня работа"
-                                       Foreground="{StaticResource SubtleTextBrush}"/>
-                            <TextBlock x:Name="TodayWorkText"
-                                       FontWeight="Bold"
-                                       FontSize="14"/>
-                        </StackPanel>
-                        <StackPanel Orientation="Vertical" Margin="0,0,12,0">
-                            <TextBlock Text="Сегодня отдых"
-                                       Foreground="{StaticResource SubtleTextBrush}"/>
-                            <TextBlock x:Name="TodayRestText"
-                                       FontWeight="Bold"
-                                       FontSize="14"/>
-                        </StackPanel>
-                        <StackPanel Orientation="Vertical">
-                            <TextBlock Text="Среднее за 3 рабочих дня"
-                                       Foreground="{StaticResource SubtleTextBrush}"/>
-                            <TextBlock x:Name="RollingAverageText"
-                                       FontWeight="Bold"
-                                       FontSize="14"/>
-                        </StackPanel>
-                    </StackPanel>
-
                     <StackPanel Orientation="Horizontal"
-                                Grid.Row="2"
+                                Grid.Row="1"
                                 HorizontalAlignment="Center"
                                 Margin="0,4,0,6">
                         <TextBlock Text="День:"
@@ -197,7 +184,7 @@
                     </StackPanel>
 
                     <ctrl:DailyChartControl x:Name="DailyChart"
-                                            Grid.Row="3"
+                                            Grid.Row="2"
                                             MinHeight="140"
                                             Margin="0"/>
                 </Grid>

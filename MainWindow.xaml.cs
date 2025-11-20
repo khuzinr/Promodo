@@ -415,12 +415,14 @@ namespace PomodoroTimer
             double todayRest = SumMinutesForType(_currentDayKey, "rest");
             double rollingAverage = CalculateRollingAverageWorkMinutes(3);
 
-            if (TodayWorkText != null)
-                TodayWorkText.Text = FormatMinutes(todayWork);
-            if (TodayRestText != null)
-                TodayRestText.Text = FormatMinutes(todayRest);
-            if (RollingAverageText != null)
-                RollingAverageText.Text = FormatMinutes(rollingAverage);
+            if (SummaryTotalsText != null)
+            {
+                SummaryTotalsText.Text = string.Join(
+                    "/",
+                    FormatMinutes(todayWork),
+                    FormatMinutes(todayRest),
+                    FormatMinutes(rollingAverage));
+            }
         }
 
         private double SumMinutesForType(string key, string type)
