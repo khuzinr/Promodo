@@ -634,7 +634,7 @@ namespace PomodoroTimer
             UpdateDailyChart();
         }
 
-        private static SolidColorBrush ResolveBrush(string hex, Color fallback)
+        private static SolidColorBrush ResolveBrush(string hex, System.Windows.Media.Color fallback)
         {
             try
             {
