@@ -306,6 +306,7 @@ public partial class StatsWindow : Window
         {
             SelectionInfoText.Text = "Выберите несколько дней на календаре справа.";
             MultiDayChart.Summaries = new List<PomodoroDaySummary>();
+            TypeBreakdownList.ItemsSource = Array.Empty<TypeBreakdown>();
             return;
         }
 
@@ -314,14 +315,11 @@ public partial class StatsWindow : Window
             .ToList();
 
         var summaries = orderedDates
-            .Select(date => new PomodoroDaySummary
-            {
-                Date = date,
-                TotalMinutes = SumWorkMinutes(date)
-            })
+            .Select(CreateDaySummary)
             .ToList();
 
         MultiDayChart.Summaries = summaries;
+        UpdateTypeBreakdown(orderedDates);
 
         var first = orderedDates.First();
         var last = orderedDates.Last();
@@ -332,20 +330,77 @@ public partial class StatsWindow : Window
         SelectionInfoText.Text = $"Выбрано {orderedDates.Count} дн. ({range}).";
     }
 
-        private double SumWorkMinutes(DateTime date)
-        {
-            string key = date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
-            if (!_stats.TryGetValue(key, out var entries) || entries == null)
-                return 0;
+    private PomodoroDaySummary CreateDaySummary(DateTime date)
+    {
+        string key = date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        if (!_stats.TryGetValue(key, out var entries) || entries == null)
+            return new PomodoroDaySummary { Date = date, TotalMinutes = 0, Segments = new List<PomodoroDayTypeSegment>() };
 
-            return entries
-            .Where(e =>
+        var groups = entries
+            .Where(e => e.DurationMinutes > 0)
+            .GroupBy(e => NormalizeType(e))
+            .Select(g => new PomodoroDayTypeSegment
             {
-                bool isRest = e.IsRest || string.Equals(e.Type, "rest", StringComparison.OrdinalIgnoreCase);
-                return !isRest;
+                Type = g.Key,
+                Minutes = g.Sum(e => e.DurationMinutes),
+                ColorHex = ResolveColorHex(g)
             })
-            .Sum(e => e.DurationMinutes);
-        }
+            .ToList();
+
+        double totalMinutes = groups.Sum(g => g.Minutes);
+
+        return new PomodoroDaySummary
+        {
+            Date = date,
+            TotalMinutes = totalMinutes,
+            Segments = groups
+        };
+    }
+
+    private void UpdateTypeBreakdown(IEnumerable<DateTime> dates)
+    {
+        var normalizedDates = dates.Select(d => d.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)).ToHashSet();
+
+        var allEntries = _stats
+            .Where(kvp => normalizedDates.Contains(kvp.Key))
+            .SelectMany(kvp => kvp.Value ?? new List<PomodoroStatsEntry>())
+            .Where(e => e.DurationMinutes > 0)
+            .ToList();
+
+        var breakdown = allEntries
+            .GroupBy(e => NormalizeType(e))
+            .OrderByDescending(g => g.Sum(e => e.DurationMinutes))
+            .Select(g => new TypeBreakdown
+            {
+                Name = g.Key,
+                Minutes = g.Sum(e => e.DurationMinutes),
+                ColorHex = ResolveColorHex(g)
+            })
+            .ToList();
+
+        TypeBreakdownList.ItemsSource = breakdown;
+    }
+
+    private static string NormalizeType(PomodoroStatsEntry entry)
+    {
+        if (!string.IsNullOrWhiteSpace(entry.Type))
+            return entry.Type.Trim();
+
+        return entry.IsRest ? "Отдых" : "Работа";
+    }
+
+    private static string ResolveColorHex(IEnumerable<PomodoroStatsEntry> entries)
+    {
+        string? explicitHex = entries
+            .Select(e => e.ColorHex)
+            .FirstOrDefault(h => !string.IsNullOrWhiteSpace(h));
+
+        if (!string.IsNullOrWhiteSpace(explicitHex))
+            return explicitHex;
+
+        bool isRest = entries.Any(e => e.IsRest || string.Equals(e.Type, "rest", StringComparison.OrdinalIgnoreCase));
+        return isRest ? "#9B59B6" : "#5AC85A";
+    }
 
     private static int GetDayOfWeekIndex(DayOfWeek day)
     {
@@ -413,6 +468,16 @@ public partial class StatsWindow : Window
     [DllImport("dwmapi.dll")]
     private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
 
+    private static string FormatDuration(double minutes)
+    {
+        var totalMinutes = (int)Math.Round(minutes);
+        int hours = totalMinutes / 60;
+        int mins = totalMinutes % 60;
+        if (hours > 0)
+            return $"{hours}ч {mins}м";
+        return $"{mins}м";
+    }
+
     private class DayCell
     {
         public Border Border { get; init; } = null!;
@@ -421,5 +486,14 @@ public partial class StatsWindow : Window
         public int Column { get; init; }
         public DateTime Date { get; set; }
         public bool IsCurrentMonth { get; set; }
+    }
+
+    private class TypeBreakdown
+    {
+        public string Name { get; init; } = string.Empty;
+        public double Minutes { get; init; }
+        public string ColorHex { get; init; } = "#5AC85A";
+        public Color Color => (Color)ColorConverter.ConvertFromString(ColorHex);
+        public string MinutesFormatted => FormatDuration(Minutes);
     }
 }

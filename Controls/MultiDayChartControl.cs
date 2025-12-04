@@ -55,7 +55,10 @@ public class MultiDayChartControl : FrameworkElement
             return;
         }
 
-        double maxMinutes = summaries.Max(s => s.TotalMinutes);
+        double maxMinutes = summaries
+            .Select(s => Math.Max(s.TotalMinutes, s.Segments?.Sum(seg => seg.Minutes) ?? 0))
+            .DefaultIfEmpty(0)
+            .Max();
         if (maxMinutes <= 0)
         {
             DrawCenteredText(dc, "Нет данных", new Point(ActualWidth / 2, ActualHeight / 2));
@@ -76,16 +79,33 @@ public class MultiDayChartControl : FrameworkElement
         for (int i = 0; i < count; i++)
         {
             var summary = summaries[i];
-            double normalized = summary.TotalMinutes / maxMinutes;
+            double totalMinutes = Math.Max(summary.TotalMinutes, summary.Segments?.Sum(seg => seg.Minutes) ?? 0);
+            double normalized = totalMinutes / maxMinutes;
             double barHeight = h * normalized;
             double x = ox + i * slotWidth + barSpacing;
             double yTop = oy - barHeight;
 
-            var barRect = new Rect(x, yTop, barWidth, barHeight);
-            dc.DrawRoundedRectangle(accent, null, barRect, 4, 4);
+            double currentTop = yTop;
+            var segments = summary.Segments ?? new List<PomodoroDayTypeSegment>();
+            if (segments.Count == 0)
+            {
+                var barRect = new Rect(x, yTop, barWidth, barHeight);
+                dc.DrawRoundedRectangle(accent, null, barRect, 4, 4);
+            }
+            else
+            {
+                foreach (var segment in segments.OrderBy(s => s.Type))
+                {
+                    double ratio = totalMinutes <= 0 ? 0 : segment.Minutes / totalMinutes;
+                    double segmentHeight = barHeight * ratio;
+                    var segmentRect = new Rect(x, currentTop, barWidth, segmentHeight);
+                    dc.DrawRectangle(CreateBrush(segment.ColorHex, accent), null, segmentRect);
+                    currentTop += segmentHeight;
+                }
+            }
 
             // value text
-            var valueText = FormatDuration(summary.TotalMinutes);
+            var valueText = FormatDuration(totalMinutes);
             var valueFormatted = new FormattedText(valueText, CultureInfo.CurrentUICulture, FlowDirection.LeftToRight,
                 new Typeface(fontFamily, FontStyles.Normal, FontWeights.SemiBold, FontStretches.Normal), 12, textBrush, dpi);
             dc.DrawText(valueFormatted, new Point(x + (barWidth - valueFormatted.Width) / 2, Math.Max(yTop - valueFormatted.Height - 4, marginTop)));
@@ -128,6 +148,23 @@ public class MultiDayChartControl : FrameworkElement
     {
         if (Application.Current?.TryFindResource(key) is Brush brush)
             return brush;
+
+        return fallback;
+    }
+
+    private static Brush CreateBrush(string? colorHex, Brush fallback)
+    {
+        if (!string.IsNullOrWhiteSpace(colorHex))
+        {
+            try
+            {
+                var color = (Color)ColorConverter.ConvertFromString(colorHex);
+                return new SolidColorBrush(color);
+            }
+            catch
+            {
+            }
+        }
 
         return fallback;
     }
