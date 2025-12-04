@@ -69,9 +69,7 @@ public class CommandServer : IDisposable
                     _window.ToggleRest();
                     break;
                 case "rest":
-                    if (_window.IsWorking)
-                        _window.ToggleRest();
-                    _window.StartTimer();
+                    _window.ActivateRestAndStart();
                     break;
                 case "show":
                     _window.ShowWindow();

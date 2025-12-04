@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Controls;
-using System.Windows.Forms;
+using Forms = System.Windows.Forms;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
@@ -41,7 +41,7 @@ namespace PomodoroTimer
 
         private readonly DispatcherTimer _dayCheckTimer;
 
-        private NotifyIcon _notifyIcon = null!;
+        private Forms.NotifyIcon _notifyIcon = null!;
         private bool _reallyQuit;
         private string _lastTrayMinutes = "00";
         private Icon? _currentTrayIcon; // Для освобождения ресурсов
@@ -189,6 +189,30 @@ namespace PomodoroTimer
         private void Stop_Click(object sender, RoutedEventArgs e)
         {
             StopTimer();
+        }
+
+        public void ToggleRest()
+        {
+            var restButton = _timerButtons.FirstOrDefault(b => b.IsRest);
+            var workButton = _timerButtons.FirstOrDefault(b => !b.IsRest);
+
+            if (_activeButton != null && _activeButton.IsRest && workButton != null)
+            {
+                ActivateButton(workButton, startImmediately: true);
+            }
+            else if (restButton != null)
+            {
+                ActivateButton(restButton, startImmediately: true);
+            }
+        }
+
+        public void ActivateRestAndStart()
+        {
+            var restButton = _timerButtons.FirstOrDefault(b => b.IsRest);
+            if (restButton != null)
+            {
+                ActivateButton(restButton, startImmediately: true);
+            }
         }
 
         public void StartTimer()
@@ -783,7 +807,7 @@ namespace PomodoroTimer
 
         private void SetupTrayIcon()
         {
-            _notifyIcon = new NotifyIcon
+            _notifyIcon = new Forms.NotifyIcon
             {
                 Visible = true,
                 Text = "Pomodoro Timer"
@@ -793,18 +817,18 @@ namespace PomodoroTimer
             _currentTrayIcon = CreateTrayIcon("00", false);
             _notifyIcon.Icon = _currentTrayIcon;
 
-            var menu = new ContextMenuStrip();
+            var menu = new Forms.ContextMenuStrip();
 
-            var startItem = new ToolStripMenuItem("Start", null, (_, _) => Dispatcher.Invoke(StartTimer));
-            var pauseItem = new ToolStripMenuItem("Pause", null, (_, _) => Dispatcher.Invoke(PauseTimer));
-            var stopItem = new ToolStripMenuItem("Stop", null, (_, _) => Dispatcher.Invoke(StopTimer));
-            var showItem = new ToolStripMenuItem("Show", null, (_, _) => Dispatcher.Invoke(ShowWindow));
-            var quitItem = new ToolStripMenuItem("Quit", null, (_, _) => Dispatcher.Invoke(QuitFromExternal));
+            var startItem = new Forms.ToolStripMenuItem("Start", null, (_, _) => Dispatcher.Invoke(StartTimer));
+            var pauseItem = new Forms.ToolStripMenuItem("Pause", null, (_, _) => Dispatcher.Invoke(PauseTimer));
+            var stopItem = new Forms.ToolStripMenuItem("Stop", null, (_, _) => Dispatcher.Invoke(StopTimer));
+            var showItem = new Forms.ToolStripMenuItem("Show", null, (_, _) => Dispatcher.Invoke(ShowWindow));
+            var quitItem = new Forms.ToolStripMenuItem("Quit", null, (_, _) => Dispatcher.Invoke(QuitFromExternal));
 
             menu.Items.Add(startItem);
             menu.Items.Add(pauseItem);
             menu.Items.Add(stopItem);
-            menu.Items.Add(new ToolStripSeparator());
+            menu.Items.Add(new Forms.ToolStripSeparator());
             menu.Items.Add(showItem);
             menu.Items.Add(quitItem);
 
@@ -812,9 +836,9 @@ namespace PomodoroTimer
             _notifyIcon.MouseClick += NotifyIcon_MouseClick;
         }
 
-        private void NotifyIcon_MouseClick(object? sender, System.Windows.Forms.MouseEventArgs e)
+        private void NotifyIcon_MouseClick(object? sender, Forms.MouseEventArgs e)
         {
-            if (e.Button == System.Windows.Forms.MouseButtons.Left)
+            if (e.Button == Forms.MouseButtons.Left)
             {
                 Dispatcher.Invoke(ShowWindow);
             }
@@ -874,7 +898,7 @@ namespace PomodoroTimer
 
             using (var g = Graphics.FromImage(bmp))
             {
-                g.Clear(Color.Transparent);
+                g.Clear(System.Drawing.Color.Transparent);
                 g.SmoothingMode = SmoothingMode.AntiAlias;
                 g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
                 g.InterpolationMode = InterpolationMode.HighQualityBicubic;
@@ -888,8 +912,8 @@ namespace PomodoroTimer
                     GraphicsUnit.Pixel);
 
                 var mainColor = red
-                    ? Color.FromArgb(255, 235, 87, 87)
-                    : Color.FromArgb(255, 255, 255, 255);
+                    ? System.Drawing.Color.FromArgb(255, 235, 87, 87)
+                    : System.Drawing.Color.FromArgb(255, 255, 255, 255);
 
                 var format = new StringFormat(StringFormat.GenericDefault)
                 {
@@ -911,8 +935,8 @@ namespace PomodoroTimer
                     new PointF(x, y),
                     StringFormat.GenericDefault);
 
-                using var shadowBrush = new SolidBrush(Color.FromArgb(160, 0, 0, 0));
-                var shadowMatrix = new Matrix();
+                using var shadowBrush = new SolidBrush(System.Drawing.Color.FromArgb(160, 0, 0, 0));
+                var shadowMatrix = new System.Drawing.Drawing2D.Matrix();
                 shadowMatrix.Translate(3, 4);
                 path.Transform(shadowMatrix);
                 g.FillPath(shadowBrush, path);
@@ -921,7 +945,7 @@ namespace PomodoroTimer
                 shadowMatrix.Translate(-3, -4);
                 path.Transform(shadowMatrix);
 
-                using var outlinePen = new Pen(Color.FromArgb(100, 0, 0, 0), 2f);
+                using var outlinePen = new Pen(System.Drawing.Color.FromArgb(100, 0, 0, 0), 2f);
                 g.DrawPath(outlinePen, path);
 
                 using var textBrush = new SolidBrush(mainColor);
@@ -930,12 +954,12 @@ namespace PomodoroTimer
                 if (!red)
                 {
                     var highlightRect = new RectangleF(x, y, textSize.Width, textSize.Height / 2);
-                    using var highlightBrush = new LinearGradientBrush(
+                    using var highlightBrush = new System.Drawing.Drawing2D.LinearGradientBrush(
                         highlightRect,
-                        Color.FromArgb(40, 255, 255, 255),
-                        Color.FromArgb(0, 255, 255, 255),
+                        System.Drawing.Color.FromArgb(40, 255, 255, 255),
+                        System.Drawing.Color.FromArgb(0, 255, 255, 255),
                         LinearGradientMode.Vertical);
-                    
+
                     g.FillPath(highlightBrush, path);
                 }
             }
