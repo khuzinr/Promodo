@@ -921,7 +921,8 @@ namespace PomodoroTimer
         {
             if (_isRunning)
             {
-                Hide();
+                ShowInTaskbar = true;
+                WindowState = WindowState.Minimized;
             }
         }
 
