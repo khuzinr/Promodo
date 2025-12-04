@@ -16,6 +16,7 @@ using PomodoroTimer.Services;
 using CommunityToolkit.WinUI.Notifications;
 using Application = System.Windows.Application;
 using MessageBox = System.Windows.MessageBox;
+using DrawingPen = System.Drawing.Pen;
 
 namespace PomodoroTimer
 {
@@ -945,7 +946,7 @@ namespace PomodoroTimer
                 shadowMatrix.Translate(-3, -4);
                 path.Transform(shadowMatrix);
 
-                using var outlinePen = new System.Drawing.Pen(System.Drawing.Color.FromArgb(100, 0, 0, 0), 2f);
+                using DrawingPen outlinePen = new DrawingPen(System.Drawing.Color.FromArgb(100, 0, 0, 0), 2f);
                 g.DrawPath(outlinePen, path);
 
                 using var textBrush = new SolidBrush(mainColor);
