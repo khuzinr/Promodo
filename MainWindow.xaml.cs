@@ -9,6 +9,7 @@ using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Forms;
 using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Threading;
 using PomodoroTimer.Models;
 using PomodoroTimer.Services;
@@ -29,6 +30,9 @@ namespace PomodoroTimer
         private List<PomodoroPreset> _presets = new();
         private PomodoroPreset _currentPreset = new();
 
+        private List<TimerButtonDefinition> _timerButtons = new();
+        private TimerButtonDefinition? _activeButton;
+
         private Dictionary<string, List<PomodoroStatsEntry>> _stats = new();
         private string _currentDayKey = DateTime.Today.ToString("yyyy-MM-dd");
         private List<PomodoroStatsEntry> _todayEntries = new();
@@ -45,6 +49,15 @@ namespace PomodoroTimer
         private bool _restoreWindowOnFinish = true;
 
         public bool IsWorking => _isWorking;
+
+        private TimerButtonDefinition ActiveButton => _activeButton ?? _timerButtons.FirstOrDefault() ?? new TimerButtonDefinition
+        {
+            Id = "default-work",
+            Name = "Работа",
+            BackgroundColorHex = "#4CAF50",
+            TextColorHex = "#FFFFFF",
+            IsRest = false
+        };
 
         [DllImport("user32.dll", SetLastError = true)]
         private static extern bool DestroyIcon(IntPtr hIcon);
@@ -74,8 +87,14 @@ namespace PomodoroTimer
             PresetList.ItemsSource = _presets;
             PresetList.SelectedItem = _currentPreset;
 
+            // Timer buttons
+            _timerButtons = ConfigService.LoadTimerButtons();
+            ButtonList.ItemsSource = _timerButtons;
+            _activeButton = _timerButtons.FirstOrDefault();
+
             // Stats
             _stats = StatsService.LoadStats();
+            NormalizeStats();
             _currentDayKey = FormatDateKey(DateTime.Today);
             _todayEntries = GetOrCreateEntriesForKey(_currentDayKey);
             _viewedDate = DateTime.Today;
@@ -94,6 +113,9 @@ namespace PomodoroTimer
             // Tray
             SetupTrayIcon();
             UpdateStartPauseButton();
+
+            EnsureActiveButton();
+            UpdateStatusText();
 
             _restoreWindowOnFinish = RestoreFromTrayCheck?.IsChecked == true;
             if (RestoreFromTrayCheck != null)
@@ -132,9 +154,36 @@ namespace PomodoroTimer
             }
         }
 
-        private void Change_Click(object sender, RoutedEventArgs e)
+        private void TimerButton_Click(object sender, RoutedEventArgs e)
         {
-            ToggleRest();
+            if (sender is Button { DataContext: TimerButtonDefinition def })
+            {
+                ActivateButton(def, startImmediately: true);
+            }
+        }
+
+        private void ConfigureButtons_Click(object sender, RoutedEventArgs e)
+        {
+            var dlg = new TimerButtonSettingsWindow(_timerButtons)
+            {
+                Owner = this
+            };
+
+            if (dlg.ShowDialog() == true)
+            {
+                _timerButtons = dlg.Result.ToList();
+                ConfigService.SaveTimerButtons(_timerButtons);
+                ButtonList.ItemsSource = _timerButtons;
+
+                if (_activeButton != null)
+                {
+                    _activeButton = _timerButtons.FirstOrDefault(b => b.Id == _activeButton.Id)
+                                     ?? _timerButtons.FirstOrDefault();
+                }
+
+                EnsureActiveButton();
+                UpdateStatusText();
+            }
         }
 
         private void Stop_Click(object sender, RoutedEventArgs e)
@@ -146,6 +195,9 @@ namespace PomodoroTimer
         {
             if (_isRunning)
                 return;
+
+            EnsureActiveButton();
+            _isWorking = !ActiveButton.IsRest;
 
             // Если таймер был на паузе (есть оставшееся время) - просто продолжаем
             if (_timeLeftSeconds > 0)
@@ -160,7 +212,7 @@ namespace PomodoroTimer
                     int elapsedSeconds = (totalMinutes * 60) - _timeLeftSeconds;
                     _periodStartTime = DateTime.Now.AddSeconds(-elapsedSeconds);
                 }
-                
+
                 UpdateStatusText();
                 UpdateTimeDisplay();
                 UpdateStartPauseButton();
@@ -202,10 +254,39 @@ namespace PomodoroTimer
 
             TimeText.Text = "00:00";
             StatusText.Text = "Остановлено";
+            TimeText.Foreground = ResolveBrush(ActiveButton.BackgroundColorHex, Colors.White);
+            StatusText.Foreground = ResolveBrush(ActiveButton.TextColorHex, Colors.White);
 
             UpdateTrayIcon("00", false);
             _notifyIcon.Text = "Pomodoro Timer";
             UpdateStartPauseButton();
+        }
+
+        private void ActivateButton(TimerButtonDefinition definition, bool startImmediately)
+        {
+            _activeButton = definition;
+            _isWorking = !definition.IsRest;
+
+            _timer.Stop();
+            _isRunning = false;
+            _timeLeftSeconds = 0;
+            _periodStartTime = null;
+
+            UpdateStatusText();
+            UpdateTimeDisplay();
+
+            if (startImmediately)
+            {
+                StartTimer();
+            }
+        }
+
+        private void EnsureActiveButton()
+        {
+            if (_activeButton == null)
+            {
+                _activeButton = ActiveButton;
+            }
         }
 
         private void Timer_Tick(object? sender, EventArgs e)
@@ -232,12 +313,20 @@ namespace PomodoroTimer
             bool isRed = _isWorking && _timeLeftSeconds > 0 && _timeLeftSeconds <= 5 * 60;
 
             UpdateTrayIcon(minutesStr, isRed);
-            _notifyIcon.Text = $"{timeStr} — {(_isWorking ? "Работа" : "Отдых")} ({_currentPreset.Name})";
+            _notifyIcon.Text = $"{timeStr} — {ActiveButton.Name}";
         }
 
         private void UpdateStatusText()
         {
-            StatusText.Text = _isWorking ? "Работа" : "Отдых";
+            var button = ActiveButton;
+            string prefix = button.IsRest ? "Отдых" : "Работа";
+            StatusText.Text = string.IsNullOrWhiteSpace(button.Name)
+                ? prefix
+                : $"{prefix}: {button.Name}";
+
+            var timerBrush = ResolveBrush(button.BackgroundColorHex, System.Windows.Media.Colors.White);
+            TimeText.Foreground = timerBrush;
+            StatusText.Foreground = ResolveBrush(button.TextColorHex, System.Windows.Media.Colors.White);
         }
 
         private void PeriodFinished()
@@ -248,22 +337,21 @@ namespace PomodoroTimer
 
             TimeText.Text = "00:00";
 
-            if (_isWorking)
+            var button = ActiveButton;
+            if (_isWorking && !button.IsRest)
             {
                 RegisterCompletedPomodoro();
 
                 System.Media.SystemSounds.Asterisk.Play();
                 System.Media.SystemSounds.Asterisk.Play();
 
-                StatusText.Text = "Рабочий период завершён";
+                StatusText.Text = $"Период \"{button.Name}\" завершён";
 
                 ShowModernNotification(
                     "Рабочий период завершён! 🍅",
-                    $"Таймер \"{_currentPreset.Name}\" завершён. Время отдохнуть!",
+                    $"Таймер \"{button.Name}\" завершён. Время отдохнуть!",
                     "work"
                 );
-
-                _isWorking = false;
             }
             else
             {
@@ -271,15 +359,13 @@ namespace PomodoroTimer
 
                 System.Media.SystemSounds.Asterisk.Play();
 
-                StatusText.Text = "Период отдыха завершён";
+                StatusText.Text = $"Отдых \"{button.Name}\" завершён";
 
                 ShowModernNotification(
                     "Отдых завершён! ⏰",
-                    $"Таймер отдыха \"{_currentPreset.Name}\" завершён. Готовы к работе?",
+                    $"Таймер отдыха \"{button.Name}\" завершён. Готовы к работе?",
                     "rest"
                 );
-
-                _isWorking = true;
             }
 
             _periodStartTime = null; // Сбрасываем время начала
@@ -294,9 +380,9 @@ namespace PomodoroTimer
             if (AutoContinueCheck.IsChecked == true)
             {
                 // Небольшая задержка перед автостартом для лучшего UX
-                var autoStartTimer = new DispatcherTimer 
-                { 
-                    Interval = TimeSpan.FromSeconds(1) 
+                var autoStartTimer = new DispatcherTimer
+                {
+                    Interval = TimeSpan.FromSeconds(1)
                 };
                 autoStartTimer.Tick += (s, e) =>
                 {
@@ -339,15 +425,15 @@ namespace PomodoroTimer
 
         private void RegisterCompletedPomodoro()
         {
-            AddStatsEntry("work", _currentPreset.WorkMinutes);
+            AddStatsEntry(ActiveButton, _currentPreset.WorkMinutes);
         }
 
         private void RegisterCompletedRest()
         {
-            AddStatsEntry("rest", _currentPreset.RestMinutes);
+            AddStatsEntry(ActiveButton, _currentPreset.RestMinutes);
         }
 
-        private void AddStatsEntry(string type, double durationMinutes)
+        private void AddStatsEntry(TimerButtonDefinition button, double durationMinutes)
         {
             EnsureCurrentDay();
 
@@ -363,7 +449,9 @@ namespace PomodoroTimer
             {
                 TimeMinutes = startMinutes,
                 DurationMinutes = durationMinutes,
-                Type = type
+                Type = button.Name,
+                ColorHex = button.BackgroundColorHex,
+                IsRest = button.IsRest
             };
 
             _todayEntries.Add(entry);
@@ -376,6 +464,26 @@ namespace PomodoroTimer
             StatsService.SaveStats(_stats);
             _statsWindow?.RefreshData();
             UpdateSummaryStats();
+        }
+
+        private void NormalizeStats()
+        {
+            foreach (var dayEntries in _stats.Values)
+            {
+                if (dayEntries == null)
+                    continue;
+
+                foreach (var entry in dayEntries)
+                {
+                    bool isRest = entry.IsRest || string.Equals(entry.Type, "rest", StringComparison.OrdinalIgnoreCase);
+                    entry.IsRest = isRest;
+
+                    if (string.IsNullOrWhiteSpace(entry.ColorHex))
+                    {
+                        entry.ColorHex = isRest ? "#9B59B6" : "#5AC85A";
+                    }
+                }
+            }
         }
 
         private static string FormatDateKey(DateTime date)
@@ -411,8 +519,8 @@ namespace PomodoroTimer
 
         private void UpdateSummaryStats()
         {
-            double todayWork = SumMinutesForType(_currentDayKey, "work");
-            double todayRest = SumMinutesForType(_currentDayKey, "rest");
+            double todayWork = SumMinutesForType(_currentDayKey, false);
+            double todayRest = SumMinutesForType(_currentDayKey, true);
             double rollingAverage = CalculateRollingAverageWorkMinutes(3);
 
             if (SummaryTotalsText != null)
@@ -425,13 +533,17 @@ namespace PomodoroTimer
             }
         }
 
-        private double SumMinutesForType(string key, string type)
+        private double SumMinutesForType(string key, bool isRestType)
         {
             if (!_stats.TryGetValue(key, out var entries) || entries == null)
                 return 0;
 
             return entries
-                .Where(e => string.Equals(e.Type, type, StringComparison.OrdinalIgnoreCase))
+                .Where(e =>
+                {
+                    bool isRest = e.IsRest || string.Equals(e.Type, "rest", StringComparison.OrdinalIgnoreCase);
+                    return isRest == isRestType;
+                })
                 .Sum(e => e.DurationMinutes);
         }
 
@@ -447,7 +559,7 @@ namespace PomodoroTimer
                 if (IsWorkday(cursor))
                 {
                     string key = FormatDateKey(cursor);
-                    totalMinutes += SumMinutesForType(key, "work");
+                    totalMinutes += SumMinutesForType(key, false);
                     collected++;
                 }
 
@@ -520,6 +632,22 @@ namespace PomodoroTimer
             _viewedDate = candidate;
             _viewedDateKey = FormatDateKey(candidate);
             UpdateDailyChart();
+        }
+
+        private static SolidColorBrush ResolveBrush(string hex, Color fallback)
+        {
+            try
+            {
+                var converter = new BrushConverter();
+                if (converter.ConvertFromString(hex) is SolidColorBrush brush)
+                    return brush;
+            }
+            catch
+            {
+                // ignore
+            }
+
+            return new SolidColorBrush(fallback);
         }
 
         private void OpenStatsWindow_Click(object sender, RoutedEventArgs e)
@@ -877,11 +1005,6 @@ namespace PomodoroTimer
                 StopTimer();
                 e.Handled = true;
             }
-            else if (e.Key == Key.A)
-            {
-                ToggleRest();
-                e.Handled = true;
-            }
         }
 
         private bool IsPresetListFocused()
@@ -909,18 +1032,6 @@ namespace PomodoroTimer
             _currentPreset = _presets[newIndex];
             PresetList.SelectedItem = _currentPreset;
             PresetList.ScrollIntoView(_currentPreset);
-        }
-
-        public void ToggleRest()
-        {
-            _isWorking = !_isWorking;
-            StopTimer();
-
-            StatusText.Text = _isWorking
-                ? "Выбран рабочий период"
-                : "Выбран период отдыха";
-            TimeText.Text = "00:00";
-            _notifyIcon.Text = $"Pomodoro Timer — {(_isWorking ? "Работа" : "Отдых")}";
         }
 
         #endregion

@@ -60,18 +60,6 @@
                     Orientation="Horizontal"
                     HorizontalAlignment="Center"
                     Margin="0,0,0,8">
-            <Button Style="{StaticResource ControlIconButtonStyle}"
-                    Click="Change_Click"
-                    ToolTipService.InitialShowDelay="2000"
-                    AutomationProperties.Name="Сменить режим">
-                <Button.ToolTip>
-                    <ToolTip Content="Горячая клавиша: Ctrl+Alt+A"/>
-                </Button.ToolTip>
-                <Viewbox Width="32" Height="32">
-                    <Path Data="{StaticResource ChangeIconGeometry}"
-                          Fill="{StaticResource TextBrush}"/>
-                </Viewbox>
-            </Button>
             <Button x:Name="StartPauseButton"
                     Style="{StaticResource ControlIconButtonStyle}"
                     Click="StartPause_Click"
@@ -120,6 +108,11 @@
             <!-- Presets -->
             <GroupBox Header="Presets" Grid.Row="0" Margin="0,0,0,10">
                 <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="3*"/>
+                        <ColumnDefinition Width="2*"/>
+                    </Grid.ColumnDefinitions>
+
                     <Grid.RowDefinitions>
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="Auto"/>
@@ -127,16 +120,45 @@
 
                     <ListBox x:Name="PresetList"
                              Grid.Row="0"
+                             Grid.Column="0"
                              Margin="0,0,0,8"
                              DisplayMemberPath="Name"
                              SelectionChanged="PresetList_SelectionChanged"/>
 
                     <StackPanel Grid.Row="1"
+                                Grid.Column="0"
                                 Orientation="Horizontal"
                                 HorizontalAlignment="Center">
                         <Button Content="Add" Width="70" Click="AddPreset_Click"/>
                         <Button Content="Edit" Width="70" Click="EditPreset_Click"/>
                         <Button Content="Delete" Width="70" Click="DeletePreset_Click"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="0"
+                                Grid.RowSpan="2"
+                                Grid.Column="1"
+                                Margin="12,0,0,0"
+                                HorizontalAlignment="Stretch">
+                        <TextBlock Text="Типы периодов"
+                                   FontWeight="Bold"
+                                   Margin="0,0,0,8"/>
+                        <ItemsControl x:Name="ButtonList"
+                                      Margin="0,0,0,8">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Content="{Binding Name}"
+                                            Margin="0,0,0,8"
+                                            Padding="12,8"
+                                            Background="{Binding BackgroundColorHex}"
+                                            Foreground="{Binding TextColorHex}"
+                                            Click="TimerButton_Click"/>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <Button Content="Настроить кнопки"
+                                HorizontalAlignment="Stretch"
+                                Click="ConfigureButtons_Click"/>
                     </StackPanel>
                 </Grid>
             </GroupBox>

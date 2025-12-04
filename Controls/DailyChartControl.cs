@@ -86,7 +86,6 @@ if (maxDuration <= 0) maxDuration = 1;
 
 // минимальная ширина столбика в пикселях, чтобы не исчезали совсем
 double minBarWidthPx = 6.0;
-var barBrush = new SolidColorBrush(Color.FromRgb(90, 200, 90));
 
 foreach (var entry in Entries)
 {
@@ -127,8 +126,30 @@ foreach (var entry in Entries)
         xRight - xLeft,
         barHeight);
 
+    var barBrush = GetBrush(entry.ColorHex, Color.FromRgb(90, 200, 90));
     dc.DrawRectangle(barBrush, null, barRect);
 }
 
+    }
+
+    private static SolidColorBrush GetBrush(string? hex, Color fallback)
+    {
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(hex))
+            {
+                var converter = new BrushConverter();
+                if (converter.ConvertFromString(hex) is SolidColorBrush brush)
+                {
+                    return brush;
+                }
+            }
+        }
+        catch
+        {
+            // ignore
+        }
+
+        return new SolidColorBrush(fallback);
     }
 }

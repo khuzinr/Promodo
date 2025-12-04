@@ -332,16 +332,20 @@ public partial class StatsWindow : Window
         SelectionInfoText.Text = $"Выбрано {orderedDates.Count} дн. ({range}).";
     }
 
-    private double SumWorkMinutes(DateTime date)
-    {
-        string key = date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
-        if (!_stats.TryGetValue(key, out var entries) || entries == null)
-            return 0;
+        private double SumWorkMinutes(DateTime date)
+        {
+            string key = date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            if (!_stats.TryGetValue(key, out var entries) || entries == null)
+                return 0;
 
-        return entries
-            .Where(e => string.Equals(e.Type, "work", StringComparison.OrdinalIgnoreCase))
+            return entries
+            .Where(e =>
+            {
+                bool isRest = e.IsRest || string.Equals(e.Type, "rest", StringComparison.OrdinalIgnoreCase);
+                return !isRest;
+            })
             .Sum(e => e.DurationMinutes);
-    }
+        }
 
     private static int GetDayOfWeekIndex(DayOfWeek day)
     {
