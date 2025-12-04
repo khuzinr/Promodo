@@ -93,7 +93,12 @@
                       Margin="0,0,0,6"/>
             <CheckBox x:Name="RestoreFromTrayCheck"
                       Content="Разворачивать окно после завершения периода"
-                      IsChecked="True"/>
+                      IsChecked="True"
+                      Margin="0,0,0,6"/>
+            <CheckBox x:Name="PinWindowWhenIdleCheck"
+                      Content="Держать окно поверх, пока таймер не запущен"
+                      Checked="PinWindowWhenIdleCheck_OnChanged"
+                      Unchecked="PinWindowWhenIdleCheck_OnChanged"/>
         </StackPanel>
 
         <!-- ПРЕСЕТЫ + ГИСТОГРАММА -->

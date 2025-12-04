@@ -48,8 +48,11 @@ namespace PomodoroTimer
         private Icon? _currentTrayIcon; // Для освобождения ресурсов
         private StatsWindow? _statsWindow;
         private bool _restoreWindowOnFinish = true;
+        private WindowSettings _windowSettings = new();
+        private bool _pinWindowWhenIdle;
 
         public bool IsWorking => _isWorking;
+        private bool HasActivePeriod => _timeLeftSeconds > 0 || _isRunning;
 
         private TimerButtonDefinition ActiveButton => _activeButton ?? _timerButtons.FirstOrDefault() ?? new TimerButtonDefinition
         {
@@ -118,12 +121,22 @@ namespace PomodoroTimer
             EnsureActiveButton();
             UpdateStatusText();
 
+            _windowSettings = ConfigService.LoadWindowSettings();
+            _pinWindowWhenIdle = _windowSettings.PinWindowWhenIdle;
+            if (PinWindowWhenIdleCheck != null)
+            {
+                PinWindowWhenIdleCheck.IsChecked = _pinWindowWhenIdle;
+            }
+
             _restoreWindowOnFinish = RestoreFromTrayCheck?.IsChecked == true;
             if (RestoreFromTrayCheck != null)
             {
                 RestoreFromTrayCheck.Checked += RestoreFromTrayCheck_OnChanged;
                 RestoreFromTrayCheck.Unchecked += RestoreFromTrayCheck_OnChanged;
             }
+
+            StateChanged += MainWindow_StateChanged;
+            ApplyIdlePinning();
         }
 
         protected override void OnSourceInitialized(EventArgs e)
@@ -229,7 +242,7 @@ namespace PomodoroTimer
             {
                 _isRunning = true;
                 _timer.Start();
-                
+
                 // Восстанавливаем время начала периода с учетом уже прошедшего времени
                 if (_periodStartTime == null)
                 {
@@ -241,6 +254,7 @@ namespace PomodoroTimer
                 UpdateStatusText();
                 UpdateTimeDisplay();
                 UpdateStartPauseButton();
+                HideToTrayIfRunning();
                 return;
             }
 
@@ -257,6 +271,7 @@ namespace PomodoroTimer
             UpdateStatusText();
             UpdateTimeDisplay();
             UpdateStartPauseButton();
+            HideToTrayIfRunning();
         }
 
         public void PauseTimer()
@@ -285,6 +300,8 @@ namespace PomodoroTimer
             UpdateTrayIcon("00", false);
             _notifyIcon.Text = "Pomodoro Timer";
             UpdateStartPauseButton();
+
+            ApplyIdlePinning();
         }
 
         private void ActivateButton(TimerButtonDefinition definition, bool startImmediately)
@@ -401,6 +418,8 @@ namespace PomodoroTimer
             {
                 ShowWindow();
             }
+
+            ApplyIdlePinning();
 
             if (AutoContinueCheck.IsChecked == true)
             {
@@ -860,6 +879,8 @@ namespace PomodoroTimer
             Activate();
             Topmost = true;
             Topmost = false;
+
+            ApplyIdlePinning();
         }
 
         public void QuitFromExternal()
@@ -894,6 +915,14 @@ namespace PomodoroTimer
 
             _currentTrayIcon = CreateTrayIcon(minutesText, red);
             _notifyIcon.Icon = _currentTrayIcon;
+        }
+
+        private void HideToTrayIfRunning()
+        {
+            if (_isRunning)
+            {
+                Hide();
+            }
         }
 
         private Icon CreateTrayIcon(string minutesText, bool red)
@@ -1065,6 +1094,42 @@ namespace PomodoroTimer
             _currentPreset = _presets[newIndex];
             PresetList.SelectedItem = _currentPreset;
             PresetList.ScrollIntoView(_currentPreset);
+        }
+
+        private void MainWindow_StateChanged(object? sender, EventArgs e)
+        {
+            if (_pinWindowWhenIdle && !HasActivePeriod && WindowState == WindowState.Minimized)
+            {
+                WindowState = WindowState.Normal;
+                ApplyIdlePinning();
+            }
+        }
+
+        private void ApplyIdlePinning()
+        {
+            if (_pinWindowWhenIdle && !HasActivePeriod)
+            {
+                if (!IsVisible)
+                    Show();
+
+                if (WindowState == WindowState.Minimized)
+                    WindowState = WindowState.Normal;
+
+                Topmost = true;
+                Activate();
+            }
+            else if (!_pinWindowWhenIdle && Topmost)
+            {
+                Topmost = false;
+            }
+        }
+
+        private void PinWindowWhenIdleCheck_OnChanged(object sender, RoutedEventArgs e)
+        {
+            _pinWindowWhenIdle = PinWindowWhenIdleCheck?.IsChecked == true;
+            _windowSettings.PinWindowWhenIdle = _pinWindowWhenIdle;
+            ConfigService.SaveWindowSettings(_windowSettings);
+            ApplyIdlePinning();
         }
 
         #endregion

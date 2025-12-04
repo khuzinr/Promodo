@@ -15,6 +15,7 @@ public static class ConfigService
 
     private static string ConfigPath => Path.Combine(ConfigDir, "config.json");
     private static string ButtonsPath => Path.Combine(ConfigDir, "timer-buttons.json");
+    private static string WindowSettingsPath => Path.Combine(ConfigDir, "window.json");
 
     public static List<PomodoroPreset> LoadPresets()
     {
@@ -89,6 +90,39 @@ public static class ConfigService
                 WriteIndented = true
             });
             File.WriteAllText(ButtonsPath, json);
+        }
+        catch
+        {
+        }
+    }
+
+    public static WindowSettings LoadWindowSettings()
+    {
+        try
+        {
+            if (!File.Exists(WindowSettingsPath))
+                return new WindowSettings { PinWindowWhenIdle = false };
+
+            var json = File.ReadAllText(WindowSettingsPath);
+            var settings = JsonSerializer.Deserialize<WindowSettings>(json);
+            return settings ?? new WindowSettings { PinWindowWhenIdle = false };
+        }
+        catch
+        {
+            return new WindowSettings { PinWindowWhenIdle = false };
+        }
+    }
+
+    public static void SaveWindowSettings(WindowSettings settings)
+    {
+        try
+        {
+            Directory.CreateDirectory(ConfigDir);
+            var json = JsonSerializer.Serialize(settings, new JsonSerializerOptions
+            {
+                WriteIndented = true
+            });
+            File.WriteAllText(WindowSettingsPath, json);
         }
         catch
         {
