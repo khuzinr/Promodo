@@ -386,7 +386,7 @@ public partial class StatsWindow : Window
         if (!string.IsNullOrWhiteSpace(entry.Type))
             return entry.Type.Trim();
 
-        return entry.IsRest ? "Отдых" : "Работа";
+        return IsRestEntry(entry) ? "Отдых" : "Работа";
     }
 
     private static string ResolveColorHex(IEnumerable<PomodoroStatsEntry> entries)
@@ -398,8 +398,20 @@ public partial class StatsWindow : Window
         if (!string.IsNullOrWhiteSpace(explicitHex))
             return explicitHex;
 
-        bool isRest = entries.Any(e => e.IsRest || string.Equals(e.Type, "rest", StringComparison.OrdinalIgnoreCase));
+        bool isRest = entries.Any(IsRestEntry);
         return isRest ? "#9B59B6" : "#5AC85A";
+    }
+
+    private static bool IsRestEntry(PomodoroStatsEntry entry)
+    {
+        if (entry.IsRest)
+            return true;
+
+        if (string.IsNullOrWhiteSpace(entry.Type))
+            return false;
+
+        return string.Equals(entry.Type, "rest", StringComparison.OrdinalIgnoreCase)
+               || string.Equals(entry.Type, "отдых", StringComparison.OrdinalIgnoreCase);
     }
 
     private static int GetDayOfWeekIndex(DayOfWeek day)

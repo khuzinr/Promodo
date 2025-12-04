@@ -500,7 +500,7 @@ namespace PomodoroTimer
 
                 foreach (var entry in dayEntries)
                 {
-                    bool isRest = entry.IsRest || string.Equals(entry.Type, "rest", StringComparison.OrdinalIgnoreCase);
+                    bool isRest = IsRestEntry(entry);
                     entry.IsRest = isRest;
 
                     if (string.IsNullOrWhiteSpace(entry.ColorHex))
@@ -564,11 +564,7 @@ namespace PomodoroTimer
                 return 0;
 
             return entries
-                .Where(e =>
-                {
-                    bool isRest = e.IsRest || string.Equals(e.Type, "rest", StringComparison.OrdinalIgnoreCase);
-                    return isRest == isRestType;
-                })
+                .Where(e => IsRestEntry(e) == isRestType)
                 .Sum(e => e.DurationMinutes);
         }
 
@@ -607,6 +603,18 @@ namespace PomodoroTimer
         {
             var span = TimeSpan.FromMinutes(minutes);
             return $"{(int)span.TotalHours:00}:{span.Minutes:00}";
+        }
+
+        private static bool IsRestEntry(PomodoroStatsEntry entry)
+        {
+            if (entry.IsRest)
+                return true;
+
+            if (string.IsNullOrWhiteSpace(entry.Type))
+                return false;
+
+            return string.Equals(entry.Type, "rest", StringComparison.OrdinalIgnoreCase)
+                   || string.Equals(entry.Type, "отдых", StringComparison.OrdinalIgnoreCase);
         }
 
         private void RestoreFromTrayCheck_OnChanged(object sender, RoutedEventArgs e)
