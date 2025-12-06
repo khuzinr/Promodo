@@ -590,10 +590,12 @@ namespace PomodoroTimer
 
             if (SummaryTotalsText != null)
             {
-                SummaryTotalsText.Text = string.Join(
-                    "/",
+                SummaryTotalsText.Text = string.Concat(
+                    "W: ",
                     FormatMinutes(todayWork),
+					"/ R: ",
                     FormatMinutes(todayRest),
+					"/ A: ",
                     FormatMinutes(rollingAverage));
             }
         }
