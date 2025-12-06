@@ -287,6 +287,8 @@ namespace PomodoroTimer
 
         public void StopTimer()
         {
+            RegisterStoppedProgress();
+
             _timer.Stop();
             _isRunning = false;
             _timeLeftSeconds = 0;
@@ -475,6 +477,25 @@ namespace PomodoroTimer
         private void RegisterCompletedRest()
         {
             AddStatsEntry(ActiveButton, _currentPreset.RestMinutes);
+        }
+
+        private void RegisterStoppedProgress()
+        {
+            if (_periodStartTime == null)
+                return;
+
+            double totalMinutes = _isWorking ? _currentPreset.WorkMinutes : _currentPreset.RestMinutes;
+
+            if (totalMinutes <= 0)
+                return;
+
+            double elapsedSeconds = totalMinutes * 60 - _timeLeftSeconds;
+            double elapsedMinutes = Math.Clamp(elapsedSeconds / 60.0, 0, totalMinutes);
+
+            if (elapsedMinutes <= 0)
+                return;
+
+            AddStatsEntry(ActiveButton, elapsedMinutes);
         }
 
         private void AddStatsEntry(TimerButtonDefinition button, double durationMinutes)
