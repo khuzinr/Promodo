@@ -4,7 +4,7 @@
         xmlns:ctrl="clr-namespace:PomodoroTimer.Controls"
         Title="Pomodoro Timer"
         Width="580"
-                MinWidth="580"
+        MinWidth="580"
         Height="1010"
         MinHeight="1010"
         Background="{StaticResource BackgroundBrush}"
@@ -89,14 +89,14 @@
                     Orientation="Vertical"
                     Margin="4,0,0,10">
             <CheckBox x:Name="AutoContinueCheck"
-                      Content="Auto-continue next period"
+                      Content="Продолжить автоматически"
                       Margin="0,0,0,6"/>
             <CheckBox x:Name="RestoreFromTrayCheck"
-                      Content="Разворачивать окно после завершения периода"
+                      Content="Разворачивать окно после завершения"
                       IsChecked="True"
                       Margin="0,0,0,6"/>
             <CheckBox x:Name="PinWindowWhenIdleCheck"
-                      Content="Держать окно поверх, пока таймер не запущен"
+                      Content="Не сворачивать, пока таймер не запущен"
                       Checked="PinWindowWhenIdleCheck_OnChanged"
                       Unchecked="PinWindowWhenIdleCheck_OnChanged"/>
         </StackPanel>
@@ -169,7 +169,7 @@
             </GroupBox>
 
             <!-- Chart -->
-            <GroupBox Header="История помидоро (гистограмма)"
+            <GroupBox Header="Statistic"
                       Grid.Row="1">
                 <Grid>
                     <Grid.RowDefinitions>
